@@ -14,9 +14,10 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QDesktopServices>
+#include <cmath>
 
 ScreenshotWidget::ScreenshotWidget(QWidget *parent)
-    : QWidget(parent), selecting(false), selected(false), currentDrawMode(None), toolbar(nullptr), devicePixelRatio(1.0), showMagnifier(false)
+    : QWidget(parent), selecting(false), selected(false), currentDrawMode(None), toolbar(nullptr), devicePixelRatio(1.0), showMagnifier(false), isDrawing(false)
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -91,64 +92,58 @@ void ScreenshotWidget::setupToolbar()
 
 void ScreenshotWidget::startCapture()
 {
-    // 获取所有屏幕并计算虚拟桌面大小
+    // 获取鼠标当前位置所在的屏幕
+    QPoint cursorPos = QCursor::pos();
+    QScreen *currentScreen = nullptr;
+    
     QList<QScreen *> screens = QGuiApplication::screens();
-    QRect virtualGeometry;
-
-    // 计算所有屏幕的联合区域
-    for (QScreen *screen : screens)
+    for (QScreen *scr : screens)
     {
-        virtualGeometry = virtualGeometry.united(screen->geometry());
-    }
-
-    // 获取主屏幕用于截图
-    QScreen *screen = QGuiApplication::primaryScreen();
-    if (screen)
-    {
-        devicePixelRatio = screen->devicePixelRatio();
-
-        // 获取整个虚拟桌面的截图
-        // 创建一个足够大的 pixmap 来容纳所有屏幕
-        QPixmap fullScreenshot(virtualGeometry.width() * devicePixelRatio,
-                               virtualGeometry.height() * devicePixelRatio);
-        fullScreenshot.setDevicePixelRatio(devicePixelRatio);
-        fullScreenshot.fill(Qt::transparent);
-
-        QPainter painter(&fullScreenshot);
-
-        // 截取每个屏幕并拼接
-        for (QScreen *scr : screens)
+        if (scr->geometry().contains(cursorPos))
         {
-            QPixmap screenCapture = scr->grabWindow(0);
-            QRect screenGeom = scr->geometry();
-
-            // 计算相对于虚拟桌面的位置
-            QPoint offset = screenGeom.topLeft() - virtualGeometry.topLeft();
-
-            painter.drawPixmap(offset, screenCapture);
+            currentScreen = scr;
+            break;
         }
-
-        painter.end();
-        screenPixmap = fullScreenshot;
     }
-
-    // 设置窗口标志以绕过窗口管理器
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool | Qt::BypassWindowManagerHint);
-
-    // 设置窗口大小和位置为整个虚拟桌面
-    setGeometry(virtualGeometry);
-
-    // 直接显示，不使用全屏模式
-    show();
-
-    // 确保窗口获得焦点以接收键盘事件
-    setFocus();
-    activateWindow();
-    raise();
-
-    selecting = false;
-    selected = false;
-    selectedRect = QRect();
+    
+    // 如果没有找到，使用主屏幕
+    if (!currentScreen)
+    {
+        currentScreen = QGuiApplication::primaryScreen();
+    }
+    
+    if (currentScreen)
+    {
+        devicePixelRatio = currentScreen->devicePixelRatio();
+        
+        // 获取当前屏幕的几何信息
+        QRect screenGeometry = currentScreen->geometry();
+        
+        // 保存屏幕的原点位置
+        virtualGeometryTopLeft = screenGeometry.topLeft();
+        
+        // 只截取当前屏幕
+        screenPixmap = currentScreen->grabWindow(0);
+        
+        // 设置窗口标志以绕过窗口管理器
+        setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool | Qt::BypassWindowManagerHint);
+        
+        // 设置窗口大小和位置为当前屏幕
+        setGeometry(screenGeometry);
+        
+        // 直接显示，不使用全屏模式
+        show();
+        
+        // 确保窗口获得焦点以接收键盘事件
+        setFocus();
+        activateWindow();
+        raise();
+        
+        selecting = false;
+        selected = false;
+        selectedRect = QRect();
+        showMagnifier = true; // 在截图开始时就启用放大镜
+    }
 }
 
 void ScreenshotWidget::startCaptureFullScreen()
@@ -182,9 +177,10 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
 
     // 绘制背景截图
     // screenPixmap包含物理像素，需要缩放到窗口大小（逻辑像素）
+    // 窗口坐标是相对于虚拟桌面的，所以需要考虑偏移
     QRect windowRect = rect();
-    painter.drawPixmap(windowRect, screenPixmap,
-                       QRect(0, 0, screenPixmap.width(), screenPixmap.height()));
+    QRect sourceRect(0, 0, screenPixmap.width(), screenPixmap.height());
+    painter.drawPixmap(windowRect, screenPixmap, sourceRect);
 
     // 绘制半透明遮罩
     painter.fillRect(rect(), QColor(0, 0, 0, 100));
@@ -205,10 +201,13 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
         if (!currentRect.isEmpty())
         {
             // 显示选中区域的原始图像
-            // 将逻辑坐标转换为物理坐标
+            // 将窗口坐标转换为截图坐标（考虑虚拟桌面偏移）
+            QPoint windowPos = geometry().topLeft();
+            QPoint offset = windowPos - virtualGeometryTopLeft;
+            
             QRect physicalRect(
-                currentRect.x() * devicePixelRatio,
-                currentRect.y() * devicePixelRatio,
+                (currentRect.x() + offset.x()) * devicePixelRatio,
+                (currentRect.y() + offset.y()) * devicePixelRatio,
                 currentRect.width() * devicePixelRatio,
                 currentRect.height() * devicePixelRatio);
             painter.drawPixmap(currentRect, screenPixmap, physicalRect);
@@ -254,7 +253,7 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
     }
 
     // 绘制放大镜
-    if (showMagnifier && selecting)
+    if (showMagnifier && !selected)
     {
         int magnifierSize = 120; // 放大镜大小
         int magnifierScale = 4;  // 放大倍数
@@ -277,13 +276,16 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
             sourceSize,
             sourceSize);
 
-        // 确保源区域在截图范围内
+        // 确保源区域在窗口范围内
         logicalSourceRect = logicalSourceRect.intersected(QRect(0, 0, width(), height()));
 
-        // 转换为物理像素坐标
+        // 转换为物理像素坐标（考虑虚拟桌面偏移）
+        QPoint windowPos = geometry().topLeft();
+        QPoint offset = windowPos - virtualGeometryTopLeft;
+        
         QRect physicalSourceRect(
-            logicalSourceRect.x() * devicePixelRatio,
-            logicalSourceRect.y() * devicePixelRatio,
+            (logicalSourceRect.x() + offset.x()) * devicePixelRatio,
+            (logicalSourceRect.y() + offset.y()) * devicePixelRatio,
             logicalSourceRect.width() * devicePixelRatio,
             logicalSourceRect.height() * devicePixelRatio);
 
@@ -306,19 +308,60 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
             painter.drawLine(centerX, centerY - 10, centerX, centerY + 10);
         }
     }
+
+    // 绘制已完成的箭头
+    for (const DrawnArrow &arrow : arrows)
+    {
+        drawArrow(painter, arrow.start, arrow.end, arrow.color, arrow.width);
+    }
+
+    // 绘制已完成的矩形
+    painter.setPen(QPen(Qt::red, 2));
+    painter.setBrush(Qt::NoBrush);
+    for (const DrawnRectangle &rect : rectangles)
+    {
+        painter.setPen(QPen(rect.color, rect.width));
+        painter.drawRect(rect.rect);
+    }
+
+    // 绘制当前正在绘制的形状
+    if (isDrawing && selected)
+    {
+        if (currentDrawMode == Arrow)
+        {
+            drawArrow(painter, drawStartPoint, drawEndPoint, QColor(255, 0, 0), 3);
+        }
+        else if (currentDrawMode == Rectangle)
+        {
+            painter.setPen(QPen(QColor(255, 0, 0), 3));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRect(QRect(drawStartPoint, drawEndPoint).normalized());
+        }
+    }
 }
 
 void ScreenshotWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        startPoint = event->pos();
-        endPoint = event->pos();
-        currentMousePos = event->pos();
-        selecting = true;
-        selected = false;
-        showMagnifier = true;
-        toolbar->hide();
+        // 如果已经选中区域且处于绘制模式
+        if (selected && currentDrawMode != None)
+        {
+            isDrawing = true;
+            drawStartPoint = event->pos();
+            drawEndPoint = event->pos();
+        }
+        // 否则开始新的区域选择
+        else if (!selected)
+        {
+            startPoint = event->pos();
+            endPoint = event->pos();
+            currentMousePos = event->pos();
+            selecting = true;
+            selected = false;
+            // showMagnifier已经在startCapture时设置为true，这里不需要重复设置
+            toolbar->hide();
+        }
         update();
     }
 }
@@ -333,25 +376,64 @@ void ScreenshotWidget::mouseMoveEvent(QMouseEvent *event)
         showMagnifier = true;
         update();
     }
+    else if (isDrawing)
+    {
+        drawEndPoint = event->pos();
+        update();
+    }
+    else if (!selected)
+    {
+        // 在框选前的鼠标移动时也触发更新，以显示放大镜
+        update();
+    }
 }
 
 void ScreenshotWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton && selecting)
+    if (event->button() == Qt::LeftButton)
     {
-        selecting = false;
-        selected = true;
-        showMagnifier = false;
-        selectedRect = QRect(startPoint, endPoint).normalized();
-
-        // 显示工具栏
-        if (!selectedRect.isEmpty())
+        if (selecting)
         {
-            updateToolbarPosition();
-            toolbar->show();
-        }
+            selecting = false;
+            selected = true;
+            showMagnifier = false;
+            selectedRect = QRect(startPoint, endPoint).normalized();
 
-        update();
+            // 显示工具栏
+            if (!selectedRect.isEmpty())
+            {
+                updateToolbarPosition();
+                toolbar->show();
+            }
+
+            update();
+        }
+        else if (isDrawing)
+        {
+            isDrawing = false;
+            drawEndPoint = event->pos();
+
+            // 保存绘制的形状
+            if (currentDrawMode == Arrow)
+            {
+                DrawnArrow arrow;
+                arrow.start = drawStartPoint;
+                arrow.end = drawEndPoint;
+                arrow.color = QColor(255, 0, 0);
+                arrow.width = 3;
+                arrows.append(arrow);
+            }
+            else if (currentDrawMode == Rectangle)
+            {
+                DrawnRectangle rect;
+                rect.rect = QRect(drawStartPoint, drawEndPoint).normalized();
+                rect.color = QColor(255, 0, 0);
+                rect.width = 3;
+                rectangles.append(rect);
+            }
+
+            update();
+        }
     }
 }
 
@@ -460,6 +542,40 @@ void ScreenshotWidget::saveScreenshot()
     QImage croppedImage = tempImage.copy(physicalRect);
     QPixmap croppedPixmap = QPixmap::fromImage(croppedImage);
 
+    // 在裁剪后的图片上绘制箭头和矩形
+    QPainter painter(&croppedPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // 绘制所有箭头（需要调整坐标到裁剪区域）
+    for (const DrawnArrow &arrow : arrows)
+    {
+        QPoint adjustedStart = QPoint(
+            (arrow.start.x() - selectedRect.x()) * devicePixelRatio,
+            (arrow.start.y() - selectedRect.y()) * devicePixelRatio
+        );
+        QPoint adjustedEnd = QPoint(
+            (arrow.end.x() - selectedRect.x()) * devicePixelRatio,
+            (arrow.end.y() - selectedRect.y()) * devicePixelRatio
+        );
+        drawArrow(painter, adjustedStart, adjustedEnd, arrow.color, arrow.width * devicePixelRatio);
+    }
+
+    // 绘制所有矩形
+    for (const DrawnRectangle &rect : rectangles)
+    {
+        QRect adjustedRect(
+            (rect.rect.x() - selectedRect.x()) * devicePixelRatio,
+            (rect.rect.y() - selectedRect.y()) * devicePixelRatio,
+            rect.rect.width() * devicePixelRatio,
+            rect.rect.height() * devicePixelRatio
+        );
+        painter.setPen(QPen(rect.color, rect.width * devicePixelRatio));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawRect(adjustedRect);
+    }
+
+    painter.end();
+
     // 获取默认保存路径
     QString defaultPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     QString defaultFileName = defaultPath + "/screenshot_" +
@@ -480,12 +596,7 @@ void ScreenshotWidget::saveScreenshot()
             QApplication::quit(); // 直接退出应用程序
         }
     }
-    else
-    {
-        // 用户取消保存，也关闭窗口
-        hide();
-        QApplication::quit();
-    }
+    // 如果用户取消保存，不做任何操作，保持当前状态（工具栏仍然可见）
 }
 
 void ScreenshotWidget::copyToClipboard()
@@ -508,6 +619,40 @@ void ScreenshotWidget::copyToClipboard()
     QImage croppedImage = tempImage.copy(physicalRect);
     QPixmap croppedPixmap = QPixmap::fromImage(croppedImage);
 
+    // 在裁剪后的图片上绘制箭头和矩形
+    QPainter painter(&croppedPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // 绘制所有箭头（需要调整坐标到裁剪区域）
+    for (const DrawnArrow &arrow : arrows)
+    {
+        QPoint adjustedStart = QPoint(
+            (arrow.start.x() - selectedRect.x()) * devicePixelRatio,
+            (arrow.start.y() - selectedRect.y()) * devicePixelRatio
+        );
+        QPoint adjustedEnd = QPoint(
+            (arrow.end.x() - selectedRect.x()) * devicePixelRatio,
+            (arrow.end.y() - selectedRect.y()) * devicePixelRatio
+        );
+        drawArrow(painter, adjustedStart, adjustedEnd, arrow.color, arrow.width * devicePixelRatio);
+    }
+
+    // 绘制所有矩形
+    for (const DrawnRectangle &rect : rectangles)
+    {
+        QRect adjustedRect(
+            (rect.rect.x() - selectedRect.x()) * devicePixelRatio,
+            (rect.rect.y() - selectedRect.y()) * devicePixelRatio,
+            rect.rect.width() * devicePixelRatio,
+            rect.rect.height() * devicePixelRatio
+        );
+        painter.setPen(QPen(rect.color, rect.width * devicePixelRatio));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawRect(adjustedRect);
+    }
+
+    painter.end();
+
     // 复制到剪贴板
     QClipboard *clipboard = QGuiApplication::clipboard();
     clipboard->setPixmap(croppedPixmap);
@@ -522,4 +667,33 @@ void ScreenshotWidget::cancelCapture()
     emit screenshotCancelled();
     hide();               // 立即隐藏窗口
     QApplication::quit(); // 直接退出应用程序
+}
+
+void ScreenshotWidget::drawArrow(QPainter &painter, const QPoint &start, const QPoint &end, const QColor &color, int width)
+{
+    painter.setPen(QPen(color, width));
+    painter.setBrush(color);
+
+    // 绘制箭头线条
+    painter.drawLine(start, end);
+
+    // 计算箭头头部
+    double angle = std::atan2(end.y() - start.y(), end.x() - start.x());
+    double arrowSize = 15.0; // 箭头大小
+    double arrowAngle = M_PI / 6; // 箭头角度 (30度)
+
+    QPointF arrowP1 = end - QPointF(
+        arrowSize * std::cos(angle - arrowAngle),
+        arrowSize * std::sin(angle - arrowAngle)
+    );
+
+    QPointF arrowP2 = end - QPointF(
+        arrowSize * std::cos(angle + arrowAngle),
+        arrowSize * std::sin(angle + arrowAngle)
+    );
+
+    // 绘制箭头头部（实心三角形）
+    QPolygonF arrowHead;
+    arrowHead << end << arrowP1 << arrowP2;
+    painter.drawPolygon(arrowHead);
 }

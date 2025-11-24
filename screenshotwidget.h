@@ -6,6 +6,25 @@
 #include <QRect>
 #include <QPushButton>
 #include <QLabel>
+#include <QVector>
+#include <QPoint>
+#include <QColor>
+
+// 绘制形状数据结构
+struct DrawnArrow
+{
+    QPoint start;
+    QPoint end;
+    QColor color;
+    int width;
+};
+
+struct DrawnRectangle
+{
+    QRect rect;
+    QColor color;
+    int width;
+};
 
 class ScreenshotWidget : public QWidget
 {
@@ -35,6 +54,7 @@ private:
     void saveScreenshot();
     void copyToClipboard();
     void cancelCapture();
+    void drawArrow(QPainter &painter, const QPoint &start, const QPoint &end, const QColor &color, int width);
 
     QPixmap screenPixmap; // 屏幕截图
     QPoint startPoint;    // 选择起始点
@@ -58,6 +78,9 @@ private:
 
     // 屏幕设备像素比
     qreal devicePixelRatio;
+    
+    // 虚拟桌面原点（用于多屏幕支持）
+    QPoint virtualGeometryTopLeft;
 
     // 放大镜相关
     QPoint currentMousePos;
@@ -73,6 +96,15 @@ private:
         Pen
     };
     DrawMode currentDrawMode;
+
+    // 存储绘制的形状
+    QVector<DrawnArrow> arrows;
+    QVector<DrawnRectangle> rectangles;
+
+    // 当前绘制的临时数据
+    bool isDrawing;
+    QPoint drawStartPoint;
+    QPoint drawEndPoint;
 };
 
 #endif // SCREENSHOTWIDGET_H
