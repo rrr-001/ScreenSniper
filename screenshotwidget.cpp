@@ -480,12 +480,7 @@ void ScreenshotWidget::saveScreenshot()
             QApplication::quit(); // 直接退出应用程序
         }
     }
-    else
-    {
-        // 用户取消保存，也关闭窗口
-        hide();
-        QApplication::quit();
-    }
+    // 如果用户取消保存，不做任何操作，保持当前状态（工具栏仍然可见）
 }
 
 void ScreenshotWidget::copyToClipboard()
