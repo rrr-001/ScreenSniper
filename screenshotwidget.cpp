@@ -529,18 +529,36 @@ void ScreenshotWidget::saveScreenshot()
         return;
     }
 
+    qDebug() << "=== Save Screenshot Debug Info ===";
+    qDebug() << "Device Pixel Ratio:" << devicePixelRatio;
+    qDebug() << "Selected Rect (Logical):" << selectedRect;
+    qDebug() << "Screen Pixmap Size:" << screenPixmap.size();
+    qDebug() << "Screen Pixmap DPR:" << screenPixmap.devicePixelRatio();
+
     // 从原始截图中裁剪选中区域
     // screenPixmap中存储的是物理像素，需要将逻辑坐标转换为物理坐标
-    QRect physicalRect(
-        selectedRect.x() * devicePixelRatio,
-        selectedRect.y() * devicePixelRatio,
-        selectedRect.width() * devicePixelRatio,
-        selectedRect.height() * devicePixelRatio);
+    // 使用 qRound 避免精度丢失
+    int x = qRound(selectedRect.x() * devicePixelRatio);
+    int y = qRound(selectedRect.y() * devicePixelRatio);
+    int w = qRound(selectedRect.width() * devicePixelRatio);
+    int h = qRound(selectedRect.height() * devicePixelRatio);
+    
+    QRect physicalRect(x, y, w, h);
+    qDebug() << "Physical Rect:" << physicalRect;
 
     // 从原始像素数据中裁剪，不使用DPR
     QImage tempImage = screenPixmap.toImage();
+    qDebug() << "Temp Image Size:" << tempImage.size();
+    
     QImage croppedImage = tempImage.copy(physicalRect);
     QPixmap croppedPixmap = QPixmap::fromImage(croppedImage);
+    
+    // 强制将 DPR 设置为 1.0，以便我们直接在物理像素上进行绘制
+    // 这样可以避免 QPainter 自动应用 DPR 导致的双重缩放
+    croppedPixmap.setDevicePixelRatio(1.0);
+    
+    qDebug() << "Cropped Pixmap Size:" << croppedPixmap.size();
+    qDebug() << "Cropped Pixmap DPR:" << croppedPixmap.devicePixelRatio();
 
     // 在裁剪后的图片上绘制箭头和矩形
     QPainter painter(&croppedPixmap);
@@ -549,21 +567,25 @@ void ScreenshotWidget::saveScreenshot()
     // 绘制所有箭头（需要调整坐标到裁剪区域）
     for (const DrawnArrow &arrow : arrows)
     {
-        QPoint adjustedStart = QPoint(
-            (arrow.start.x() - selectedRect.x()) * devicePixelRatio,
-            (arrow.start.y() - selectedRect.y()) * devicePixelRatio
-        );
-        QPoint adjustedEnd = QPoint(
-            (arrow.end.x() - selectedRect.x()) * devicePixelRatio,
-            (arrow.end.y() - selectedRect.y()) * devicePixelRatio
-        );
-        drawArrow(painter, adjustedStart, adjustedEnd, arrow.color, arrow.width * devicePixelRatio);
+        // 计算相对于选中区域左上角的逻辑坐标
+        QPointF relativeStart = arrow.start - selectedRect.topLeft();
+        QPointF relativeEnd = arrow.end - selectedRect.topLeft();
+        
+        // 转换为物理坐标
+        QPointF adjustedStart = relativeStart * devicePixelRatio;
+        QPointF adjustedEnd = relativeEnd * devicePixelRatio;
+        
+        qDebug() << "Arrow:" << arrow.start << "->" << arrow.end;
+        qDebug() << "Relative:" << relativeStart << "->" << relativeEnd;
+        qDebug() << "Adjusted (Physical):" << adjustedStart << "->" << adjustedEnd;
+
+        drawArrow(painter, adjustedStart, adjustedEnd, arrow.color, arrow.width * devicePixelRatio, devicePixelRatio);
     }
 
     // 绘制所有矩形
     for (const DrawnRectangle &rect : rectangles)
     {
-        QRect adjustedRect(
+        QRectF adjustedRect(
             (rect.rect.x() - selectedRect.x()) * devicePixelRatio,
             (rect.rect.y() - selectedRect.y()) * devicePixelRatio,
             rect.rect.width() * devicePixelRatio,
@@ -606,18 +628,26 @@ void ScreenshotWidget::copyToClipboard()
         return;
     }
 
+    qDebug() << "=== Copy to Clipboard Debug Info ===";
+    qDebug() << "Device Pixel Ratio:" << devicePixelRatio;
+    
     // 从原始截图中裁剪选中区域
     // screenPixmap中存储的是物理像素，需要将逻辑坐标转换为物理坐标
-    QRect physicalRect(
-        selectedRect.x() * devicePixelRatio,
-        selectedRect.y() * devicePixelRatio,
-        selectedRect.width() * devicePixelRatio,
-        selectedRect.height() * devicePixelRatio);
+    int x = qRound(selectedRect.x() * devicePixelRatio);
+    int y = qRound(selectedRect.y() * devicePixelRatio);
+    int w = qRound(selectedRect.width() * devicePixelRatio);
+    int h = qRound(selectedRect.height() * devicePixelRatio);
+    
+    QRect physicalRect(x, y, w, h);
 
     // 从原始像素数据中裁剪，不使用DPR
     QImage tempImage = screenPixmap.toImage();
     QImage croppedImage = tempImage.copy(physicalRect);
     QPixmap croppedPixmap = QPixmap::fromImage(croppedImage);
+    
+    // 强制将 DPR 设置为 1.0，以便我们直接在物理像素上进行绘制
+    // 这样可以避免 QPainter 自动应用 DPR 导致的双重缩放
+    croppedPixmap.setDevicePixelRatio(1.0);
 
     // 在裁剪后的图片上绘制箭头和矩形
     QPainter painter(&croppedPixmap);
@@ -626,21 +656,21 @@ void ScreenshotWidget::copyToClipboard()
     // 绘制所有箭头（需要调整坐标到裁剪区域）
     for (const DrawnArrow &arrow : arrows)
     {
-        QPoint adjustedStart = QPoint(
-            (arrow.start.x() - selectedRect.x()) * devicePixelRatio,
-            (arrow.start.y() - selectedRect.y()) * devicePixelRatio
-        );
-        QPoint adjustedEnd = QPoint(
-            (arrow.end.x() - selectedRect.x()) * devicePixelRatio,
-            (arrow.end.y() - selectedRect.y()) * devicePixelRatio
-        );
-        drawArrow(painter, adjustedStart, adjustedEnd, arrow.color, arrow.width * devicePixelRatio);
+        // 计算相对于选中区域左上角的逻辑坐标
+        QPointF relativeStart = arrow.start - selectedRect.topLeft();
+        QPointF relativeEnd = arrow.end - selectedRect.topLeft();
+        
+        // 转换为物理坐标
+        QPointF adjustedStart = relativeStart * devicePixelRatio;
+        QPointF adjustedEnd = relativeEnd * devicePixelRatio;
+        
+        drawArrow(painter, adjustedStart, adjustedEnd, arrow.color, arrow.width * devicePixelRatio, devicePixelRatio);
     }
 
     // 绘制所有矩形
     for (const DrawnRectangle &rect : rectangles)
     {
-        QRect adjustedRect(
+        QRectF adjustedRect(
             (rect.rect.x() - selectedRect.x()) * devicePixelRatio,
             (rect.rect.y() - selectedRect.y()) * devicePixelRatio,
             rect.rect.width() * devicePixelRatio,
@@ -669,7 +699,7 @@ void ScreenshotWidget::cancelCapture()
     QApplication::quit(); // 直接退出应用程序
 }
 
-void ScreenshotWidget::drawArrow(QPainter &painter, const QPoint &start, const QPoint &end, const QColor &color, int width)
+void ScreenshotWidget::drawArrow(QPainter &painter, const QPointF &start, const QPointF &end, const QColor &color, int width, double scale)
 {
     painter.setPen(QPen(color, width));
     painter.setBrush(color);
@@ -679,7 +709,7 @@ void ScreenshotWidget::drawArrow(QPainter &painter, const QPoint &start, const Q
 
     // 计算箭头头部
     double angle = std::atan2(end.y() - start.y(), end.x() - start.x());
-    double arrowSize = 15.0; // 箭头大小
+    double arrowSize = 15.0 * scale; // 箭头大小
     double arrowAngle = M_PI / 6; // 箭头角度 (30度)
 
     QPointF arrowP1 = end - QPointF(

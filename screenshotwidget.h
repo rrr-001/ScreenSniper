@@ -54,7 +54,7 @@ private:
     void saveScreenshot();
     void copyToClipboard();
     void cancelCapture();
-    void drawArrow(QPainter &painter, const QPoint &start, const QPoint &end, const QColor &color, int width);
+    void drawArrow(QPainter &painter, const QPointF &start, const QPointF &end, const QColor &color, int width, double scale = 1.0);
 
     QPixmap screenPixmap; // 屏幕截图
     QPoint startPoint;    // 选择起始点
