@@ -78,6 +78,9 @@ private:
 
     // 屏幕设备像素比
     qreal devicePixelRatio;
+    
+    // 虚拟桌面原点（用于多屏幕支持）
+    QPoint virtualGeometryTopLeft;
 
     // 放大镜相关
     QPoint currentMousePos;

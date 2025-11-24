@@ -92,65 +92,58 @@ void ScreenshotWidget::setupToolbar()
 
 void ScreenshotWidget::startCapture()
 {
-    // 获取所有屏幕并计算虚拟桌面大小
+    // 获取鼠标当前位置所在的屏幕
+    QPoint cursorPos = QCursor::pos();
+    QScreen *currentScreen = nullptr;
+    
     QList<QScreen *> screens = QGuiApplication::screens();
-    QRect virtualGeometry;
-
-    // 计算所有屏幕的联合区域
-    for (QScreen *screen : screens)
+    for (QScreen *scr : screens)
     {
-        virtualGeometry = virtualGeometry.united(screen->geometry());
-    }
-
-    // 获取主屏幕用于截图
-    QScreen *screen = QGuiApplication::primaryScreen();
-    if (screen)
-    {
-        devicePixelRatio = screen->devicePixelRatio();
-
-        // 获取整个虚拟桌面的截图
-        // 创建一个足够大的 pixmap 来容纳所有屏幕
-        QPixmap fullScreenshot(virtualGeometry.width() * devicePixelRatio,
-                               virtualGeometry.height() * devicePixelRatio);
-        fullScreenshot.setDevicePixelRatio(devicePixelRatio);
-        fullScreenshot.fill(Qt::transparent);
-
-        QPainter painter(&fullScreenshot);
-
-        // 截取每个屏幕并拼接
-        for (QScreen *scr : screens)
+        if (scr->geometry().contains(cursorPos))
         {
-            QPixmap screenCapture = scr->grabWindow(0);
-            QRect screenGeom = scr->geometry();
-
-            // 计算相对于虚拟桌面的位置
-            QPoint offset = screenGeom.topLeft() - virtualGeometry.topLeft();
-
-            painter.drawPixmap(offset, screenCapture);
+            currentScreen = scr;
+            break;
         }
-
-        painter.end();
-        screenPixmap = fullScreenshot;
     }
-
-    // 设置窗口标志以绕过窗口管理器
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool | Qt::BypassWindowManagerHint);
-
-    // 设置窗口大小和位置为整个虚拟桌面
-    setGeometry(virtualGeometry);
-
-    // 直接显示，不使用全屏模式
-    show();
-
-    // 确保窗口获得焦点以接收键盘事件
-    setFocus();
-    activateWindow();
-    raise();
-
-    selecting = false;
-    selected = false;
-    selectedRect = QRect();
-    showMagnifier = true; // 在截图开始时就启用放大镜
+    
+    // 如果没有找到，使用主屏幕
+    if (!currentScreen)
+    {
+        currentScreen = QGuiApplication::primaryScreen();
+    }
+    
+    if (currentScreen)
+    {
+        devicePixelRatio = currentScreen->devicePixelRatio();
+        
+        // 获取当前屏幕的几何信息
+        QRect screenGeometry = currentScreen->geometry();
+        
+        // 保存屏幕的原点位置
+        virtualGeometryTopLeft = screenGeometry.topLeft();
+        
+        // 只截取当前屏幕
+        screenPixmap = currentScreen->grabWindow(0);
+        
+        // 设置窗口标志以绕过窗口管理器
+        setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool | Qt::BypassWindowManagerHint);
+        
+        // 设置窗口大小和位置为当前屏幕
+        setGeometry(screenGeometry);
+        
+        // 直接显示，不使用全屏模式
+        show();
+        
+        // 确保窗口获得焦点以接收键盘事件
+        setFocus();
+        activateWindow();
+        raise();
+        
+        selecting = false;
+        selected = false;
+        selectedRect = QRect();
+        showMagnifier = true; // 在截图开始时就启用放大镜
+    }
 }
 
 void ScreenshotWidget::startCaptureFullScreen()
@@ -184,9 +177,10 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
 
     // 绘制背景截图
     // screenPixmap包含物理像素，需要缩放到窗口大小（逻辑像素）
+    // 窗口坐标是相对于虚拟桌面的，所以需要考虑偏移
     QRect windowRect = rect();
-    painter.drawPixmap(windowRect, screenPixmap,
-                       QRect(0, 0, screenPixmap.width(), screenPixmap.height()));
+    QRect sourceRect(0, 0, screenPixmap.width(), screenPixmap.height());
+    painter.drawPixmap(windowRect, screenPixmap, sourceRect);
 
     // 绘制半透明遮罩
     painter.fillRect(rect(), QColor(0, 0, 0, 100));
@@ -207,10 +201,13 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
         if (!currentRect.isEmpty())
         {
             // 显示选中区域的原始图像
-            // 将逻辑坐标转换为物理坐标
+            // 将窗口坐标转换为截图坐标（考虑虚拟桌面偏移）
+            QPoint windowPos = geometry().topLeft();
+            QPoint offset = windowPos - virtualGeometryTopLeft;
+            
             QRect physicalRect(
-                currentRect.x() * devicePixelRatio,
-                currentRect.y() * devicePixelRatio,
+                (currentRect.x() + offset.x()) * devicePixelRatio,
+                (currentRect.y() + offset.y()) * devicePixelRatio,
                 currentRect.width() * devicePixelRatio,
                 currentRect.height() * devicePixelRatio);
             painter.drawPixmap(currentRect, screenPixmap, physicalRect);
@@ -279,13 +276,16 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
             sourceSize,
             sourceSize);
 
-        // 确保源区域在截图范围内
+        // 确保源区域在窗口范围内
         logicalSourceRect = logicalSourceRect.intersected(QRect(0, 0, width(), height()));
 
-        // 转换为物理像素坐标
+        // 转换为物理像素坐标（考虑虚拟桌面偏移）
+        QPoint windowPos = geometry().topLeft();
+        QPoint offset = windowPos - virtualGeometryTopLeft;
+        
         QRect physicalSourceRect(
-            logicalSourceRect.x() * devicePixelRatio,
-            logicalSourceRect.y() * devicePixelRatio,
+            (logicalSourceRect.x() + offset.x()) * devicePixelRatio,
+            (logicalSourceRect.y() + offset.y()) * devicePixelRatio,
             logicalSourceRect.width() * devicePixelRatio,
             logicalSourceRect.height() * devicePixelRatio);
 
