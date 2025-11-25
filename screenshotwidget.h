@@ -9,11 +9,8 @@
 #include <QVector>
 #include <QPoint>
 #include <QColor>
-<<<<<<< HEAD
-=======
 #include<QTextEdit>
 #include<QLineEdit>
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
 // 绘制形状数据结构
 struct DrawnArrow
@@ -31,8 +28,6 @@ struct DrawnRectangle
     int width;
 };
 
-<<<<<<< HEAD
-=======
 //绘制文本数据结构
 struct DrawnText
 {
@@ -52,7 +47,6 @@ struct DrawnPenStroke
     int width;
 };
 
->>>>>>> d8e1273 (合并马赛克和文本功能)
 class ScreenshotWidget : public QWidget
 {
     Q_OBJECT
@@ -75,12 +69,9 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 
-<<<<<<< HEAD
-=======
 private slots:
     void onTextInputFinished();
 
->>>>>>> d8e1273 (合并马赛克和文本功能)
 private:
 
     //高斯模糊相关函数：
@@ -116,13 +107,10 @@ private:
     void updateEffectToolbarPosition();
     void updateStrengthLabel();
 
-<<<<<<< HEAD
-=======
     //添加文本相关函数
     void setupTextInput();
     void drawText(QPainter &painter, const QPoint &position, const QString &text, const QColor &color, const QFont &font);
 
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
     QPixmap screenPixmap; // 屏幕截图
     QPoint startPoint;    // 选择起始点
@@ -186,8 +174,6 @@ private:
     QPoint currentMousePos;
     bool showMagnifier;
 
-<<<<<<< HEAD
-=======
     //文本输入相关
     QLineEdit *textInput;
     bool isTextInputActive;
@@ -197,27 +183,20 @@ private:
     bool isTextMoving;
     DrawnText* movingText;
     QPoint dragStartOffset;
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
     // 绘制相关
 
     // 存储绘制的形状
     QVector<DrawnArrow> arrows;
     QVector<DrawnRectangle> rectangles;
-<<<<<<< HEAD
-=======
     QVector<DrawnText> texts;
     QVector<DrawnPenStroke> penStrokes;
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
     // 当前绘制的临时数据
     bool isDrawing;
     QPoint drawStartPoint;
     QPoint drawEndPoint;
-<<<<<<< HEAD
-=======
     QVector<QPoint> currentPenStroke;
->>>>>>> d8e1273 (合并马赛克和文本功能)
 };
 
 #endif // SCREENSHOTWIDGET_H
