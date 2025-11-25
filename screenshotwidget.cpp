@@ -15,10 +15,31 @@
 #include <QHBoxLayout>
 #include <QDesktopServices>
 #include <cmath>
+<<<<<<< HEAD
 
 
 ScreenshotWidget::ScreenshotWidget(QWidget *parent)
     : QWidget(parent), selecting(false), selected(false), currentDrawMode(None), toolbar(nullptr), devicePixelRatio(1.0), showMagnifier(false), isDrawing(false)
+=======
+#include<QtMath>
+#include<QLineEdit>
+#include<QFontDialog>
+
+
+ScreenshotWidget::ScreenshotWidget(QWidget *parent)
+    : QWidget(parent),
+      selecting(false),
+      selected(false),
+      currentDrawMode(None),
+      toolbar(nullptr),
+      devicePixelRatio(1.0),
+      showMagnifier(false),
+      isDrawing(false),
+      textInput(nullptr),
+      isTextInputActive(false),
+      isTextMoving(false),
+      movingText(nullptr)
+>>>>>>> d8e1273 (合并马赛克和文本功能)
 
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
@@ -28,6 +49,10 @@ ScreenshotWidget::ScreenshotWidget(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus); // 确保窗口能接收键盘事件
 
     setupToolbar();
+<<<<<<< HEAD
+=======
+    setupTextInput();
+>>>>>>> d8e1273 (合并马赛克和文本功能)
     //setupMosaicToolbar();
     // 创建尺寸标签
     sizeLabel = new QLabel(this);
@@ -50,7 +75,12 @@ void ScreenshotWidget::setupToolbar()
         "border: none; padding: 8px 15px; border-radius: 3px; font-size: 13px; }"
         "QPushButton:hover { background-color: rgba(80, 80, 80, 255); }"
         "QPushButton:pressed { background-color: rgba(50, 50, 50, 255); }"
+<<<<<<< HEAD
         "QLabel { background-color: transparent; color: white; padding: 5px; font-size: 12px; }");
+=======
+        "QLabel { background-color: transparent; color: white; padding: 5px; font-size: 12px; }"
+        "QPushButton:checked { background-color: rgba(0, 150, 255, 255); }");
+>>>>>>> d8e1273 (合并马赛克和文本功能)
 
     QHBoxLayout *layout = new QHBoxLayout(toolbar);
     layout->setSpacing(5);
@@ -680,6 +710,16 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
         painter.drawRect(rect.rect);
     }
 
+<<<<<<< HEAD
+=======
+    //绘制所有文本
+    for(const DrawnText &text : texts){
+        //绘制文字
+        drawText(painter,text.rect.topLeft() + QPoint(5,text.fontSize + 5),
+                text.text,text.color,text.font);
+     }
+
+>>>>>>> d8e1273 (合并马赛克和文本功能)
     // 绘制当前正在绘制的形状
     if (isDrawing && selected)
     {
@@ -700,12 +740,87 @@ void ScreenshotWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
+<<<<<<< HEAD
         // 如果已经选中区域且处于图形绘制模式
         if (selected && (currentDrawMode == Rectangle || currentDrawMode == Arrow))
+=======
+        QPoint clickPos = event->pos();
+        //检查是否点击了已存在的文字
+        if(selected && !isTextInputActive){
+            for(int i = texts.size() - 1; i >= 0; i--){
+                if(texts[i].rect.contains(event->pos())){
+                    //开始拖拽文字
+                    isTextMoving = true;
+                    movingText = &texts[i];
+                    dragStartOffset = event->pos() - texts[i].rect.topLeft();
+                    setCursor(Qt::ClosedHandCursor);
+
+                    currentDrawMode = None;
+                    isDrawing = false;
+                    update();
+                    return;
+                }
+            }
+        }
+
+        if (isTextInputActive && textInput->isVisible()) {
+            // 点击文本输入框外部：完成当前文本输入，但保持文本模式
+            if (!textInput->geometry().contains(clickPos)) {
+                onTextInputFinished(); // 完成当前文本输入
+                // 但保持文本模式，允许继续添加文字
+                currentDrawMode = Text;
+                isTextInputActive = false; // 输入框已隐藏，但模式保持
+            }
+            return;
+        }
+        // 如果已经选中区域且处于文字绘制模式
+        else if(currentDrawMode == Text && !isTextInputActive){
+            //文本模式：显示输入框
+            textInputPosition = event->pos();
+            textInput->move(event->pos());
+            textInput->resize(200,30);
+            textInput->show();
+            textInput->setFocus();
+            isTextInputActive = true;
+            return;
+        }
+        else if (selected && currentDrawMode == None) {
+            bool textClicked = false;
+            for (int i = texts.size() - 1; i >= 0; --i) {
+                if (texts[i].rect.contains(clickPos)) {
+                    // 点击了已存在的文字，进入编辑模式
+                    currentDrawMode = Text;
+                    textInputPosition = texts[i].position;
+                    textInput->move(texts[i].position);
+                    textInput->resize(texts[i].rect.size());
+                    textInput->setText(texts[i].text);
+                    textInput->show();
+                    textInput->setFocus();
+                    textInput->selectAll();
+                    isTextInputActive = true;
+
+                    // 移除原来的文字（编辑后重新添加）
+                    texts.removeAt(i);
+                    textClicked = true;
+                    break;
+                }
+            }
+            if (textClicked) return;
+        }
+        // 如果已经选中区域且处于图形绘制模式
+        else if (selected && (currentDrawMode == Rectangle || currentDrawMode == Arrow))
+>>>>>>> d8e1273 (合并马赛克和文本功能)
         {
             isDrawing = true;
             drawStartPoint = event->pos();
             drawEndPoint = event->pos();
+<<<<<<< HEAD
+=======
+            //隐藏文本输入框
+            textInput->hide();
+            isTextInputActive = false;
+
+>>>>>>> d8e1273 (合并马赛克和文本功能)
         }
         //如果已经选中区域且处于马赛克或者高斯模糊模式
         else if ((currentDrawMode == Mosaic || currentDrawMode == Blur)&& selected) {
@@ -761,6 +876,35 @@ void ScreenshotWidget::mouseMoveEvent(QMouseEvent *event)
         // 在框选前的鼠标移动时也触发更新，以显示放大镜
         update();
     }
+<<<<<<< HEAD
+=======
+    else if(isTextMoving && movingText){
+            //拖拽移动文字：实时更新位置
+            QPoint newPos = event->pos() - dragStartOffset;
+
+            //确保文字不会移出屏幕边界
+            newPos.setX(qMax(0,qMin(newPos.x(),width() - movingText->rect.width())));
+            newPos.setY(qMax(0,qMin(newPos.y(),height() - movingText->rect.height())));
+
+            movingText->rect.moveTopLeft(newPos);
+            movingText->position = newPos;
+            update();
+    }
+    else {
+        //检查鼠标是否悬停在文字上
+        bool overText = false;
+        for(const DrawnText &text : texts){
+            if(text.rect.contains(event->pos())){
+                setCursor(Qt::PointingHandCursor);
+                overText = true;
+                break;
+            }
+        }
+        if(!overText){
+            setCursor(Qt::CrossCursor);
+        }
+    }
+>>>>>>> d8e1273 (合并马赛克和文本功能)
 }
 
 
@@ -810,6 +954,16 @@ void ScreenshotWidget::mouseReleaseEvent(QMouseEvent *event)
 
             update();
         }
+<<<<<<< HEAD
+=======
+        else if(isTextMoving && movingText){
+            //松开鼠标左键，停止拖拽移动
+            isTextMoving = false;
+             movingText = nullptr;
+             setCursor(Qt::CrossCursor);
+            update();
+        }
+>>>>>>> d8e1273 (合并马赛克和文本功能)
         //else if(selecting)
         else  {
             // 原有选择逻辑
@@ -872,6 +1026,25 @@ void ScreenshotWidget::keyPressEvent(QKeyEvent *event)
             update();
         }
     }
+<<<<<<< HEAD
+=======
+
+    //可以删除选中的文字
+    if((event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) && selected){
+        if(movingText){
+            for(int i=0; i<texts.size(); i++){
+                if(&texts[i] == movingText){
+                    texts.remove(i);
+                    isTextMoving = false;
+                    movingText = nullptr;
+                    setCursor(Qt::CrossCursor);
+                    update();
+                    break;
+                }
+            }
+        }
+    }
+>>>>>>> d8e1273 (合并马赛克和文本功能)
 }
 void ScreenshotWidget::updateEffectToolbarPosition()
 {
@@ -1038,6 +1211,20 @@ void ScreenshotWidget::saveScreenshot()
         painter.setBrush(Qt::NoBrush);
         painter.drawRect(adjustedRect);
     }
+<<<<<<< HEAD
+=======
+    //绘制文本
+    for(const DrawnText &text : texts){
+        QPoint adjustedPosition(
+                (text.position.x() - selectedRect.x()) * devicePixelRatio,
+                (text.position.y() - selectedRect.y()) * devicePixelRatio
+        );
+
+        //绘制文字
+        drawText(painter, adjustedPosition + QPoint(5,text.fontSize + 5),
+                    text.text, text.color, text.font);
+    }
+>>>>>>> d8e1273 (合并马赛克和文本功能)
 
     painter.end();
 
@@ -1152,7 +1339,22 @@ void ScreenshotWidget::copyToClipboard()
         painter.setBrush(Qt::NoBrush);
         painter.drawRect(adjustedRect);
     }
+<<<<<<< HEAD
 
+=======
+    //绘制文本
+    for(const DrawnText &text : texts){
+        QPoint adjustedPosition(
+                (text.position.x() - selectedRect.x()) * devicePixelRatio,
+                (text.position.y() - selectedRect.y()) * devicePixelRatio
+        );
+
+
+        //绘制文字
+        drawText(painter, adjustedPosition + QPoint(5,text.fontSize + 5),
+                    text.text, text.color, text.font);
+    }
+>>>>>>> d8e1273 (合并马赛克和文本功能)
     painter.end();
 
     // 应用模糊效果（如果有模糊区域）
@@ -1216,3 +1418,64 @@ void ScreenshotWidget::drawArrow(QPainter &painter, const QPointF &start, const 
     painter.drawPolygon(arrowHead);
 }
 
+<<<<<<< HEAD
+=======
+
+void ScreenshotWidget::setupTextInput(){
+    //添加文本输入框设置
+    textInput = new QLineEdit(this);
+    textInput->setStyleSheet(
+                "QLineEdit{ background-color:rgba(255,255,255,240);color: black; "
+                "border: 2px solid #0096FF; border-radius: 3px;padding: 5px;font-size: 14px; }"
+                "QLineEdit:focus{border-color:#FF5500;}");
+    textInput->setPlaceholderText("输入文字...");
+    textInput->hide();
+
+    //连接信号
+    connect(textInput,&QLineEdit::editingFinished,this,&ScreenshotWidget::onTextInputFinished);
+    connect(textInput,&QLineEdit::returnPressed,this,&ScreenshotWidget::onTextInputFinished);
+}
+
+void ScreenshotWidget::onTextInputFinished(){
+    if(!textInput || textInput->text().isEmpty()){
+        if(textInput){
+            textInput->hide();
+            textInput->clear();
+        }
+        isTextInputActive = false;
+        currentDrawMode = None;
+        return;
+    }
+    //保存文本
+    DrawnText drawnText;
+    drawnText.position = textInputPosition;
+    drawnText.text = textInput->text();
+    drawnText.color = QColor(255,0,0);
+    drawnText.fontSize = 14;
+    drawnText.font = QFont("Arial",drawnText.fontSize);
+
+    //计算文字矩形大小
+    QFontMetrics metrics(drawnText.font);
+    QRect textRect = metrics.boundingRect(drawnText.text);
+    textRect.moveTopLeft(textInputPosition);
+    textRect.adjust(-2,-2,2,2);
+    drawnText.rect = textRect;
+
+    texts.append(drawnText);
+
+    textInput->hide();
+    textInput->clear();
+    isTextInputActive = false;
+    currentDrawMode = None;
+    update();
+}
+
+
+//文本绘制函数
+void ScreenshotWidget::drawText(QPainter &painter, const QPoint &position, const QString &text, const QColor &color, const QFont &font){
+    painter.setPen(color);
+    painter.setFont(font);
+    painter.drawText(position,text);
+}
+
+>>>>>>> d8e1273 (合并马赛克和文本功能)
