@@ -55,7 +55,6 @@ struct DrawnPenStroke
     int width;
 };
 
-
 class ScreenshotWidget : public QWidget
 {
     Q_OBJECT
@@ -204,6 +203,7 @@ private:
     bool isTextMoving;
     DrawnText* movingText;
     QPoint dragStartOffset;
+
 
     // 绘制相关
 

@@ -707,7 +707,6 @@ void ScreenshotWidget::paintEvent(QPaintEvent *event)
         painter.drawEllipse(ellipse.rect);
     }
 
-
     //绘制所有文本
     for(const DrawnText &text : texts){
         //绘制文字
@@ -958,6 +957,7 @@ void ScreenshotWidget::mouseReleaseEvent(QMouseEvent *event)
              setCursor(Qt::CrossCursor);
             update();
         }
+
         //else if(selecting)
         else  {
             // 原有选择逻辑
@@ -1020,7 +1020,6 @@ void ScreenshotWidget::keyPressEvent(QKeyEvent *event)
             update();
         }
     }
-
 
     //可以删除选中的文字
     if((event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) && selected){
@@ -1203,7 +1202,6 @@ void ScreenshotWidget::saveScreenshot()
         painter.setBrush(Qt::NoBrush);
         painter.drawRect(adjustedRect);
     }
-
     // 绘制所有椭圆
     for (const DrawnEllipse &ellipse : ellipses)
     {
@@ -1229,6 +1227,7 @@ void ScreenshotWidget::saveScreenshot()
         drawText(painter, adjustedPosition + QPoint(5,text.fontSize + 5),
                     text.text, text.color, text.font);
     }
+
 
     painter.end();
 
@@ -1343,7 +1342,6 @@ void ScreenshotWidget::copyToClipboard()
         painter.setBrush(Qt::NoBrush);
         painter.drawRect(adjustedRect);
     }
-
     // 绘制所有椭圆
     for (const DrawnEllipse &ellipse : ellipses)
     {
