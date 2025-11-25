@@ -9,11 +9,8 @@
 #include <QVector>
 #include <QPoint>
 #include <QColor>
-<<<<<<< HEAD
-=======
 #include<QTextEdit>
 #include<QLineEdit>
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
 // 绘制形状数据结构
 struct DrawnArrow
@@ -31,8 +28,14 @@ struct DrawnRectangle
     int width;
 };
 
-<<<<<<< HEAD
-=======
+//绘制椭圆结构体
+struct  DrawnEllipse
+{
+    QRect rect;
+    QColor color;
+    int width;
+};
+
 //绘制文本数据结构
 struct DrawnText
 {
@@ -47,12 +50,11 @@ struct DrawnText
 //画笔数据结构
 struct DrawnPenStroke
 {
-    QVector<QPoint> point;
+    QVector<QPoint> points;
     QColor color;
     int width;
 };
 
->>>>>>> d8e1273 (合并马赛克和文本功能)
 class ScreenshotWidget : public QWidget
 {
     Q_OBJECT
@@ -75,12 +77,10 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 
-<<<<<<< HEAD
-=======
 private slots:
     void onTextInputFinished();
 
->>>>>>> d8e1273 (合并马赛克和文本功能)
+
 private:
 
     //高斯模糊相关函数：
@@ -93,6 +93,7 @@ private:
     {
         None,
         Rectangle,
+        Ellipse,
         Arrow,
         Text,
         Pen,
@@ -108,6 +109,7 @@ private:
     QPixmap applyMosaic(const QPixmap &source, const QRect &area, int strength);//马赛克应用
     void setupToolbar();
     void updateToolbarPosition();
+    void updatePreviewCanvas(QLabel *canvas);
 
     void saveScreenshot();
     void copyToClipboard();
@@ -116,13 +118,10 @@ private:
     void updateEffectToolbarPosition();
     void updateStrengthLabel();
 
-<<<<<<< HEAD
-=======
     //添加文本相关函数
     void setupTextInput();
     void drawText(QPainter &painter, const QPoint &position, const QString &text, const QColor &color, const QFont &font);
 
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
     QPixmap screenPixmap; // 屏幕截图
     QPoint startPoint;    // 选择起始点
@@ -137,11 +136,13 @@ private:
     QPushButton *btnCopy;
     QPushButton *btnCancel;
     QPushButton *btnRect;  // 矩形工具
+    QPushButton *btnEllipse;//椭圆工具
     QPushButton *btnArrow; // 箭头工具
     QPushButton *btnText;  // 文字工具
     QPushButton *btnPen;   // 画笔工具
     QPushButton *btnMosaic;  // 马赛克按钮
     QPushButton *btnBlur;//高斯模糊按钮
+
     // 尺寸显示标签
     QLabel *sizeLabel;
 
@@ -163,6 +164,14 @@ private:
     QLabel *strengthLabel;
     // ============ 马赛克成员变量结束 ============
 
+    //添加画笔选择相关
+    QColor currentPenColor;    //当前画笔颜色
+    int currentPenWidth;       //当前画笔粗细
+
+    //画笔工具栏
+    QWidget *penToolbar;
+    QPushButton *btnPenWidthUp;
+    QPushButton *btnPenQisthDown;
 
     // 高斯模糊相关
     QWidget *blurToolbar;
@@ -186,8 +195,6 @@ private:
     QPoint currentMousePos;
     bool showMagnifier;
 
-<<<<<<< HEAD
-=======
     //文本输入相关
     QLineEdit *textInput;
     bool isTextInputActive;
@@ -197,27 +204,21 @@ private:
     bool isTextMoving;
     DrawnText* movingText;
     QPoint dragStartOffset;
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
     // 绘制相关
 
     // 存储绘制的形状
     QVector<DrawnArrow> arrows;
     QVector<DrawnRectangle> rectangles;
-<<<<<<< HEAD
-=======
+    QVector<DrawnEllipse> ellipses;
     QVector<DrawnText> texts;
     QVector<DrawnPenStroke> penStrokes;
->>>>>>> d8e1273 (合并马赛克和文本功能)
 
     // 当前绘制的临时数据
     bool isDrawing;
     QPoint drawStartPoint;
     QPoint drawEndPoint;
-<<<<<<< HEAD
-=======
     QVector<QPoint> currentPenStroke;
->>>>>>> d8e1273 (合并马赛克和文本功能)
 };
 
 #endif // SCREENSHOTWIDGET_H
