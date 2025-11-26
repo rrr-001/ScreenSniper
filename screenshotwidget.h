@@ -127,7 +127,10 @@ private:
     QPoint endPoint;      // 选择结束点
     bool selecting;       // 是否正在选择
     bool selected;        // 是否已选择完成
+    bool m_selectedWindow;  // 是否已选择窗口
     QRect selectedRect;   // 选中的矩形区域
+    QList<WindowInfo> m_validWindows;       // 有效窗口列表
+    WindowInfo m_hoverWindow;   //高亮窗口
 
     // 工具栏
     QWidget* toolbar;
