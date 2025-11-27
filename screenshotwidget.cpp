@@ -39,7 +39,8 @@ ScreenshotWidget::ScreenshotWidget(QWidget* parent)
     penToolbar(nullptr),
     currentTextFont("Arial",18),
     currentTextColor(Qt::red),
-    currentFontSize(18)
+    currentFontSize(18),
+    editingTextIndex(-1)
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -60,8 +61,7 @@ ScreenshotWidget::ScreenshotWidget(QWidget* parent)
         "padding: 5px; border-radius: 3px; font-size: 12px; }");
     sizeLabel->hide();
 
-    // 枚举系统所有有效窗口
-    m_validWindows = enumAllValidWindows();
+    // 准备截图状态
 }
 
 ScreenshotWidget::~ScreenshotWidget()
@@ -915,8 +915,23 @@ void ScreenshotWidget::mousePressEvent(QMouseEvent* event)
 
         // 处理文字编辑模式
         if (selected && currentDrawMode == None) {
-            // 调用handleNoneMode函数处理文本点击编辑逻辑
-            handleNoneMode(clickPos);
+            // 检查是否点击了文字，准备拖拽
+            bool clickedOnText = false;
+            for (int i = texts.size() - 1; i >= 0; i--) {
+                if (texts[i].rect.contains(clickPos)) {
+                    // 开始拖拽文字
+                    isTextMoving = true;
+                    movingText = &texts[i];
+                    dragStartOffset = clickPos - movingText->position;
+                    setCursor(Qt::SizeAllCursor);
+                    clickedOnText = true;
+                    break;
+                }
+            }
+            if (!clickedOnText) {
+                // 没有点击文字，调用handleNoneMode
+                handleNoneMode(clickPos);
+            }
             return;
         }
         // 如果已经选中区域且处于图形绘制模式
@@ -990,7 +1005,6 @@ void ScreenshotWidget::mouseMoveEvent(QMouseEvent* event)
 
     if (selecting)
     {
-        m_selectedWindow = false;
         endPoint = event->pos();
         showMagnifier = true;
         update();
@@ -1018,15 +1032,6 @@ void ScreenshotWidget::mouseMoveEvent(QMouseEvent* event)
     }
     else if (!selected)
     {
-        //查询窗口
-        if(m_selectedWindow){
-            m_hoverWindow = WindowInfo(); // 重置
-            captureWindow(event->globalPos());
-            //获取窗口大小
-            if (m_hoverWindow.hwnd) {
-                selectedRect = getAccurateWindowRect(m_hoverWindow.hwnd);
-            }
-        }
         // 在框选前的鼠标移动时也触发更新，以显示放大镜
         update();
     }
@@ -1720,8 +1725,15 @@ void ScreenshotWidget::onTextInputFinished() {
 
     drawnText.rect = textRect;
 
-    // 添加文字到列表
-    texts.append(drawnText);
+    // 根据是否正在编辑来决定是添加新文字还是替换现有文字
+    if (editingTextIndex >= 0 && editingTextIndex < texts.size()) {
+        // 替换现有文字
+        texts[editingTextIndex] = drawnText;
+        editingTextIndex = -1; // 重置编辑索引
+    } else {
+        // 添加新文字
+        texts.append(drawnText);
+    }
 
     // 隐藏输入框并清除内容
     textInput->hide();
@@ -2015,8 +2027,7 @@ void ScreenshotWidget::updateFontToolbarPosition(){
 void ScreenshotWidget::handleNoneMode(const QPoint& clickPos){
     for (int i = texts.size() - 1; i >= 0; i--) {
         if (texts[i].rect.contains(clickPos)) {
-            // 单击选中文字，准备拖拽（在mousePressEvent中处理）
-            // 这里主要处理非拖拽的单击选择
+            // 单击选中文字，准备拖拽
             setCursor(Qt::PointingHandCursor);
             break;
         }
@@ -2204,6 +2215,9 @@ void ScreenshotWidget::editExistingText(int textIndex)
     // 切换到文本模式
     currentDrawMode = Text;
 
+    // 保存正在编辑的文字索引
+    editingTextIndex = textIndex;
+
     // 设置输入框位置和内容
     textInputPosition = text.position;
     
@@ -2230,11 +2244,7 @@ void ScreenshotWidget::editExistingText(int textIndex)
             fontToolbar->raise();
         }
 
-        // 移除原来的文字（编辑后重新添加）
-        texts.removeAt(textIndex);
-
         update();
     }
 }
-
 
