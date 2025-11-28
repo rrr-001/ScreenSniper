@@ -21,6 +21,18 @@
 #include<QLineEdit>
 #include<QFontDialog>
 #include<QColorDialog>
+#include <opencv2/opencv.hpp>
+#include "watermark_robust.h"
+
+#include <QSpinBox>
+#include <QDoubleSpinBox>
+#include <QDialog>
+#include <QMessageBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+
 
 #ifdef Q_OS_MAC
 #include <CoreGraphics/CoreGraphics.h>
@@ -98,6 +110,7 @@ void ScreenshotWidget::setupToolbar()
     btnPen = new QPushButton("画笔", toolbar);
     btnMosaic = new QPushButton("马赛克", toolbar);
     btnBlur = new QPushButton("高斯模糊", toolbar);  // 新增模糊按钮
+    btnWatermark = new QPushButton("隐水印", toolbar);  // 新增隐水印
     // 操作按钮
     btnSave = new QPushButton("保存", toolbar);
     btnCopy = new QPushButton("复制", toolbar);
@@ -112,6 +125,7 @@ void ScreenshotWidget::setupToolbar()
 
     layout->addWidget(btnMosaic);//马赛克按钮
     layout->addWidget(btnBlur);  // 高斯模糊按钮
+    layout->addWidget(btnWatermark);  // 水印按钮
     layout->addSpacing(10);
     layout->addWidget(btnSave);
     layout->addWidget(btnCopy);
@@ -275,6 +289,8 @@ void ScreenshotWidget::setupToolbar()
             // }
 
         });
+    connect(btnWatermark, &QPushButton::clicked, this, &ScreenshotWidget::showWatermarkDialog);
+
     connect(btnStrengthUp, &QPushButton::clicked, this, &ScreenshotWidget::increaseEffectStrength);
     connect(btnStrengthDown, &QPushButton::clicked, this, &ScreenshotWidget::decreaseEffectStrength);
 
@@ -285,6 +301,7 @@ void ScreenshotWidget::setupToolbar()
     toolbar->hide();
     EffectToolbar->hide();
 }
+
 
 void ScreenshotWidget::increaseEffectStrength()
 {
@@ -1489,6 +1506,59 @@ void ScreenshotWidget::saveScreenshot()
         }
         croppedPixmap = processedPixmap;
     }
+<<<<<<< HEAD
+=======
+    // ==================== 嵌入水印 ====================
+    if (!watermarkText.isEmpty()) {
+        qDebug() << "开始嵌入水印:" << watermarkText;
+
+        // 将 QPixmap 转换为 cv::Mat
+        QImage imageWithAnnotations = croppedPixmap.toImage();
+
+        // 确保图像格式正确
+        if (imageWithAnnotations.format() != QImage::Format_RGB32 &&
+            imageWithAnnotations.format() != QImage::Format_ARGB32) {
+            imageWithAnnotations = imageWithAnnotations.convertToFormat(QImage::Format_RGB32);
+        }
+
+        // 转换为 OpenCV Mat
+        cv::Mat cvImage(imageWithAnnotations.height(), imageWithAnnotations.width(), CV_8UC4,
+                        (void*)imageWithAnnotations.constBits(), imageWithAnnotations.bytesPerLine());
+
+        // 创建深拷贝以避免内存问题
+        cv::Mat cvImageCopy = cvImage.clone();
+
+        // 转换为 BGR 格式
+        cv::Mat cvImageBGR;
+        cv::cvtColor(cvImageCopy, cvImageBGR, cv::COLOR_RGBA2BGR);
+
+        // 嵌入水印
+        bool watermarkSuccess = embedRobustWatermark(cvImageBGR,
+                                                     watermarkText.toStdString());
+
+        if (watermarkSuccess) {
+            qDebug() << "水印嵌入成功";
+
+            // 将处理后的图像转换回 QImage
+            cv::Mat cvImageRGBA;
+            cv::cvtColor(cvImageBGR, cvImageRGBA, cv::COLOR_BGR2RGBA);
+
+            // 创建 QImage 并使用 copy() 确保内存安全
+            QImage watermarkedImage(cvImageRGBA.data,
+                                    cvImageRGBA.cols,
+                                    cvImageRGBA.rows,
+                                    cvImageRGBA.step,
+                                    QImage::Format_RGBA8888);
+
+            croppedPixmap = QPixmap::fromImage(watermarkedImage.copy());
+        } else {
+            qDebug() << "水印嵌入失败";
+            QMessageBox::warning(this, "警告", "水印嵌入失败，将保存无水印图片");
+        }
+    } else {
+        qDebug() << "未设置水印内容";
+    }
+>>>>>>> MB
     // 获取默认保存路径
     QString defaultPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     QString defaultFileName = defaultPath + "/screenshot_" +
@@ -1502,14 +1572,29 @@ void ScreenshotWidget::saveScreenshot()
 
     if (!fileName.isEmpty())
     {
-        if (croppedPixmap.save(fileName))
+        // 根据文件扩展名确定保存格式
+        QString suffix = QFileInfo(fileName).suffix().toLower();
+        if (suffix != "png" && suffix != "jpg" && suffix != "jpeg")
         {
-            emit screenshotTaken();
-            hide();
-            QApplication::quit();
+            fileName += ".png"; // 默认使用 PNG
+            suffix = "png";
         }
-    }
+
+        // 保存图片
+        bool saveSuccess = false;
+        if (suffix == "png")
+        {
+            saveSuccess = croppedPixmap.save(fileName, "PNG", 100);
+        }
+        else if (suffix == "jpg" || suffix == "jpeg")
+        {
+            saveSuccess = croppedPixmap.save(fileName, "JPEG", 95);
+        }
+        emit screenshotTaken();    // 发射截图完成信号
+        hide();                    // 隐藏当前窗口
+        QApplication::quit();      // 退出整个应用程序
     // 如果用户取消保存，不做任何操作，保持当前状态（工具栏仍然可见）
+}
 }
 
 void ScreenshotWidget::copyToClipboard()
@@ -2376,4 +2461,51 @@ void ScreenshotWidget::captureWindow(QPoint mousePos)
         update();
     }
 }
+void ScreenshotWidget::showWatermarkDialog()//嵌入水印
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle("设置隐水印参数");
+    dlg.setModal(true);
+    dlg.resize(380, 180);  // 高度减小，因为移除了参数设置
 
+    QVBoxLayout *layout = new QVBoxLayout(&dlg);
+
+    // 输入文本
+    QLabel *note = new QLabel("水印内容最多 15 字符，不足自动补 '0' ");
+    layout->addWidget(note);
+
+    QLineEdit *editText = new QLineEdit();
+    editText->setPlaceholderText("请输入水印内容（≤15字符）");
+    editText->setMaxLength(15);
+    layout->addWidget(editText);
+
+    // 显示固定参数信息
+    QLabel *paramInfo = new QLabel("固定参数：量化步长 Δ=16.0f，冗余强度 REPEAT=11");
+    paramInfo->setStyleSheet("color: gray; font-size: 10pt;");
+    layout->addWidget(paramInfo);
+
+    // 按钮栏
+    QHBoxLayout *btnRow = new QHBoxLayout();
+    QPushButton *btnOk = new QPushButton("确定");
+    QPushButton *btnCancel = new QPushButton("取消");
+    btnRow->addWidget(btnOk);
+    btnRow->addWidget(btnCancel);
+    layout->addLayout(btnRow);
+
+    connect(btnCancel, &QPushButton::clicked, &dlg, &QDialog::reject);
+
+    connect(btnOk, &QPushButton::clicked, [&]() {
+        QString txt = editText->text();
+
+        if (txt.length() < 15)
+            txt = txt + QString("0").repeated(15 - txt.length());
+
+        watermarkText = txt;
+        dlg.accept();
+    });
+
+    if (dlg.exec() == QDialog::Accepted)
+    {
+        QMessageBox::information(this, "成功", "隐水印参数设置成功！\n保存截图时将自动嵌入水印。");
+    }
+}
