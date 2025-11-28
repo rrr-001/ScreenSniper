@@ -1508,11 +1508,6 @@ void ScreenshotWidget::saveScreenshot()
         }
     }
     // 如果用户取消保存，不做任何操作，保持当前状态（工具栏仍然可见）
-    else
-    {
-        hide();
-        QApplication::quit();
-    }
 }
 
 void ScreenshotWidget::copyToClipboard()
