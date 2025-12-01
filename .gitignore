@@ -53,3 +53,14 @@ desktop.ini
 # Local, per-developer qmake includes (machine-specific library paths and defines)
 # Add `local_config.pri` to this file to keep local settings out of version control.
 local_config.pri
+
+# Node.js / npm
+node_modules/
+locales-package/
+locales/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 从 npm 包拉取的翻译文件（由脚本自动生成，不提交到版本控制）
+locales/*.json

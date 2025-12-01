@@ -1,0 +1,22 @@
+{
+  "name": "screensniper",
+  "version": "1.0.0",
+  "description": "ScreenSniper 截图工具",
+  "main": "index.js",
+  "scripts": {
+    "install-locales": "node scripts/install-locales.js",
+    "update-locales": "npm run install-locales",
+    "prebuild": "npm run install-locales"
+  },
+  "keywords": [
+    "screenshot",
+    "localization",
+    "i18n"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@screensniper/locales": "^1.2.0"
+  },
+  "devDependencies": {}
+}
