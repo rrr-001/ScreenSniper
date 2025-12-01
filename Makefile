@@ -14,10 +14,10 @@ EQ            = =
 
 CC            = /Library/Developer/CommandLineTools/usr/bin/clang
 CXX           = /Library/Developer/CommandLineTools/usr/bin/clang++
-DEFINES       = -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+DEFINES       = -DUSE_TESSERACT -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 $(EXPORT_ARCH_ARGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=10.13 -Wall -Wextra -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -stdlib=libc++ -O2 $(EXPORT_ARCH_ARGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=10.13 -Wall -Wextra -fPIC $(DEFINES)
-INCPATH       = -I. -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I. -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I. -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -F/opt/homebrew/Cellar/qt@5/5.15.18/lib
+INCPATH       = -I. -I/opt/homebrew/include -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I. -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I. -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -F/opt/homebrew/Cellar/qt@5/5.15.18/lib
 QMAKE         = /opt/homebrew/opt/qt@5/bin/qmake
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -40,7 +40,7 @@ DISTNAME      = ScreenSniper1.0.0
 DISTDIR = /Users/ceilf/Desktop/ScreenSniper/.tmp/ScreenSniper1.0.0
 LINK          = /Library/Developer/CommandLineTools/usr/bin/clang++
 LFLAGS        = -stdlib=libc++ -headerpad_max_install_names $(EXPORT_ARCH_ARGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=10.13 -Wl,-rpath,@executable_path/../Frameworks
-LIBS          = $(SUBLIBS) -F/opt/homebrew/Cellar/qt@5/5.15.18/lib -framework CoreGraphics -framework Vision -L/opt/homebrew/opt/opencv/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_videoio -framework QtWidgets -framework QtGui -framework AppKit -framework Metal -framework QtCore -framework DiskArbitration -framework IOKit -framework OpenGL   
+LIBS          = $(SUBLIBS) -F/opt/homebrew/Cellar/qt@5/5.15.18/lib -framework CoreGraphics -framework Vision -L/opt/homebrew/lib -ltesseract -lleptonica -L/opt/homebrew/opt/opencv/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_videoio -framework QtWidgets -framework QtGui -framework AppKit -framework Metal -framework QtCore -framework DiskArbitration -framework IOKit -framework OpenGL   
 AR            = /Library/Developer/CommandLineTools/usr/bin/ar cq
 RANLIB        = /Library/Developer/CommandLineTools/usr/bin/ranlib -s
 SED           = sed
@@ -787,7 +787,18 @@ compiler_rcc_make_all: qrc_resources.cpp
 compiler_rcc_clean:
 	-$(DEL_FILE) qrc_resources.cpp
 qrc_resources.cpp: resources.qrc \
-		/opt/homebrew/Cellar/qt@5/5.15.18/bin/rcc
+		/opt/homebrew/Cellar/qt@5/5.15.18/bin/rcc \
+		icons/mosaic.svg \
+		icons/save.svg \
+		icons/blur.svg \
+		icons/shapes.svg \
+		icons/text.svg \
+		icons/ocr.svg \
+		icons/pin.svg \
+		icons/cancel.svg \
+		icons/copy.svg \
+		icons/pen.svg \
+		icons/watermark.svg
 	/opt/homebrew/Cellar/qt@5/5.15.18/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h
@@ -832,7 +843,7 @@ moc_mainwindow.cpp: mainwindow.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers/qlineedit.h \
 		moc_predefs.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc
-	/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc $(DEFINES) --include /Users/ceilf/Desktop/ScreenSniper/moc_predefs.h -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -I/Users/ceilf/Desktop/ScreenSniper -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/17/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/opt/homebrew/Cellar/qt@5/5.15.18/lib mainwindow.h -o moc_mainwindow.cpp
+	/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc $(DEFINES) --include /Users/ceilf/Desktop/ScreenSniper/moc_predefs.h -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -I/Users/ceilf/Desktop/ScreenSniper -I/opt/homebrew/include -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/17/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/opt/homebrew/Cellar/qt@5/5.15.18/lib mainwindow.h -o moc_mainwindow.cpp
 
 moc_pinwidget.cpp: pinwidget.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers/QWidget \
@@ -843,7 +854,7 @@ moc_pinwidget.cpp: pinwidget.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qpoint.h \
 		moc_predefs.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc
-	/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc $(DEFINES) --include /Users/ceilf/Desktop/ScreenSniper/moc_predefs.h -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -I/Users/ceilf/Desktop/ScreenSniper -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/17/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/opt/homebrew/Cellar/qt@5/5.15.18/lib pinwidget.h -o moc_pinwidget.cpp
+	/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc $(DEFINES) --include /Users/ceilf/Desktop/ScreenSniper/moc_predefs.h -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -I/Users/ceilf/Desktop/ScreenSniper -I/opt/homebrew/include -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/17/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/opt/homebrew/Cellar/qt@5/5.15.18/lib pinwidget.h -o moc_pinwidget.cpp
 
 moc_screenshotwidget.cpp: screenshotwidget.h \
 		pinwidget.h \
@@ -869,7 +880,7 @@ moc_screenshotwidget.cpp: screenshotwidget.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers/qlineedit.h \
 		moc_predefs.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc
-	/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc $(DEFINES) --include /Users/ceilf/Desktop/ScreenSniper/moc_predefs.h -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -I/Users/ceilf/Desktop/ScreenSniper -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/17/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/opt/homebrew/Cellar/qt@5/5.15.18/lib screenshotwidget.h -o moc_screenshotwidget.cpp
+	/opt/homebrew/Cellar/qt@5/5.15.18/bin/moc $(DEFINES) --include /Users/ceilf/Desktop/ScreenSniper/moc_predefs.h -I/opt/homebrew/Cellar/qt@5/5.15.18/mkspecs/macx-clang -I/Users/ceilf/Desktop/ScreenSniper -I/opt/homebrew/include -I/opt/homebrew/opt/opencv/include/opencv4 -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/17/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/opt/homebrew/Cellar/qt@5/5.15.18/lib screenshotwidget.h -o moc_screenshotwidget.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
@@ -1123,6 +1134,213 @@ screenshotwidget.o: screenshotwidget.cpp screenshotwidget.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/all_indices.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/kdtree_index.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/dynamic_bitset.h \
+		/opt/homebrew/include/boost/dynamic_bitset.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/dynamic_bitset.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/config.hpp \
+		/opt/homebrew/include/boost/config.hpp \
+		/opt/homebrew/include/boost/config/user.hpp \
+		/opt/homebrew/include/boost/config/detail/select_compiler_config.hpp \
+		/opt/homebrew/include/boost/config/compiler/nvcc.hpp \
+		/opt/homebrew/include/boost/config/compiler/gcc_xml.hpp \
+		/opt/homebrew/include/boost/config/compiler/cray.hpp \
+		/opt/homebrew/include/boost/config/compiler/common_edg.hpp \
+		/opt/homebrew/include/boost/config/compiler/comeau.hpp \
+		/opt/homebrew/include/boost/config/compiler/pathscale.hpp \
+		/opt/homebrew/include/boost/config/compiler/clang.hpp \
+		/opt/homebrew/include/boost/config/compiler/clang_version.hpp \
+		/opt/homebrew/include/boost/config/compiler/intel.hpp \
+		/opt/homebrew/include/boost/config/compiler/visualc.hpp \
+		/opt/homebrew/include/boost/config/pragma_message.hpp \
+		/opt/homebrew/include/boost/config/helper_macros.hpp \
+		/opt/homebrew/include/boost/config/compiler/gcc.hpp \
+		/opt/homebrew/include/boost/config/compiler/digitalmars.hpp \
+		/opt/homebrew/include/boost/config/compiler/kai.hpp \
+		/opt/homebrew/include/boost/config/compiler/sgi_mipspro.hpp \
+		/opt/homebrew/include/boost/config/compiler/compaq_cxx.hpp \
+		/opt/homebrew/include/boost/config/compiler/greenhills.hpp \
+		/opt/homebrew/include/boost/config/compiler/codegear.hpp \
+		/opt/homebrew/include/boost/config/compiler/borland.hpp \
+		/opt/homebrew/include/boost/config/compiler/metrowerks.hpp \
+		/opt/homebrew/include/boost/config/compiler/sunpro_cc.hpp \
+		/opt/homebrew/include/boost/config/compiler/hp_acc.hpp \
+		/opt/homebrew/include/boost/config/compiler/mpw.hpp \
+		/opt/homebrew/include/boost/config/compiler/xlcpp_zos.hpp \
+		/opt/homebrew/include/boost/config/compiler/xlcpp.hpp \
+		/opt/homebrew/include/boost/config/compiler/vacpp.hpp \
+		/opt/homebrew/include/boost/config/compiler/pgi.hpp \
+		/opt/homebrew/include/boost/config/detail/select_stdlib_config.hpp \
+		/opt/homebrew/include/boost/config/stdlib/stlport.hpp \
+		/opt/homebrew/include/boost/config/stdlib/libcomo.hpp \
+		/opt/homebrew/include/boost/config/no_tr1/utility.hpp \
+		/opt/homebrew/include/boost/config/stdlib/roguewave.hpp \
+		/opt/homebrew/include/boost/config/stdlib/libcpp.hpp \
+		/opt/homebrew/include/boost/config/stdlib/libstdcpp3.hpp \
+		/opt/homebrew/include/boost/config/stdlib/sgi.hpp \
+		/opt/homebrew/include/boost/config/stdlib/msl.hpp \
+		/opt/homebrew/include/boost/config/detail/posix_features.hpp \
+		/opt/homebrew/include/boost/config/stdlib/xlcpp_zos.hpp \
+		/opt/homebrew/include/boost/config/stdlib/vacpp.hpp \
+		/opt/homebrew/include/boost/config/stdlib/modena.hpp \
+		/opt/homebrew/include/boost/config/stdlib/dinkumware.hpp \
+		/opt/homebrew/include/boost/config/detail/select_platform_config.hpp \
+		/opt/homebrew/include/boost/config/platform/linux.hpp \
+		/opt/homebrew/include/boost/config/platform/bsd.hpp \
+		/opt/homebrew/include/boost/config/platform/solaris.hpp \
+		/opt/homebrew/include/boost/config/platform/irix.hpp \
+		/opt/homebrew/include/boost/config/platform/hpux.hpp \
+		/opt/homebrew/include/boost/config/platform/cygwin.hpp \
+		/opt/homebrew/include/boost/config/platform/win32.hpp \
+		/opt/homebrew/include/boost/config/platform/beos.hpp \
+		/opt/homebrew/include/boost/config/platform/macos.hpp \
+		/opt/homebrew/include/boost/config/platform/zos.hpp \
+		/opt/homebrew/include/boost/config/platform/aix.hpp \
+		/opt/homebrew/include/boost/config/platform/amigaos.hpp \
+		/opt/homebrew/include/boost/config/platform/qnxnto.hpp \
+		/opt/homebrew/include/boost/config/platform/vxworks.hpp \
+		/opt/homebrew/include/boost/config/platform/symbian.hpp \
+		/opt/homebrew/include/boost/config/platform/cray.hpp \
+		/opt/homebrew/include/boost/config/platform/vms.hpp \
+		/opt/homebrew/include/boost/config/detail/suffix.hpp \
+		/opt/homebrew/include/boost/config/detail/cxx_composite.hpp \
+		/opt/homebrew/include/boost/detail/workaround.hpp \
+		/opt/homebrew/include/boost/config/workaround.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset_fwd.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/detail/dynamic_bitset.hpp \
+		/opt/homebrew/include/boost/core/allocator_access.hpp \
+		/opt/homebrew/include/boost/core/pointer_traits.hpp \
+		/opt/homebrew/include/boost/core/addressof.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/detail/lowest_bit.hpp \
+		/opt/homebrew/include/boost/integer/integer_log2.hpp \
+		/opt/homebrew/include/boost/assert.hpp \
+		/opt/homebrew/include/boost/current_function.hpp \
+		/opt/homebrew/include/boost/cstdint.hpp \
+		/opt/homebrew/include/boost/limits.hpp \
+		/opt/homebrew/include/boost/core/bit.hpp \
+		/opt/homebrew/include/boost/static_assert.hpp \
+		/opt/homebrew/include/boost/core/enable_if.hpp \
+		/opt/homebrew/include/boost/type_traits/is_integral.hpp \
+		/opt/homebrew/include/boost/type_traits/integral_constant.hpp \
+		/opt/homebrew/include/boost/type_traits/make_unsigned.hpp \
+		/opt/homebrew/include/boost/type_traits/conditional.hpp \
+		/opt/homebrew/include/boost/type_traits/is_signed.hpp \
+		/opt/homebrew/include/boost/type_traits/remove_cv.hpp \
+		/opt/homebrew/include/boost/type_traits/is_enum.hpp \
+		/opt/homebrew/include/boost/type_traits/intrinsics.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/config.hpp \
+		/opt/homebrew/include/boost/version.hpp \
+		/opt/homebrew/include/boost/type_traits/is_same.hpp \
+		/opt/homebrew/include/boost/type_traits/is_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_lvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_rvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_rvalue_reference_msvc10_fix.hpp \
+		/opt/homebrew/include/boost/type_traits/is_volatile.hpp \
+		/opt/homebrew/include/boost/type_traits/is_void.hpp \
+		/opt/homebrew/include/boost/type_traits/add_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_arithmetic.hpp \
+		/opt/homebrew/include/boost/type_traits/is_floating_point.hpp \
+		/opt/homebrew/include/boost/type_traits/is_convertible.hpp \
+		/opt/homebrew/include/boost/type_traits/is_complete.hpp \
+		/opt/homebrew/include/boost/type_traits/declval.hpp \
+		/opt/homebrew/include/boost/type_traits/add_rvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/remove_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_function.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_cxx_11.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_cxx_03.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_ptr_helper.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_ptr_tester.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/yes_no_type.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_msvc10_fix.hpp \
+		/opt/homebrew/include/boost/type_traits/is_array.hpp \
+		/opt/homebrew/include/boost/type_traits/is_abstract.hpp \
+		/opt/homebrew/include/boost/type_traits/is_class.hpp \
+		/opt/homebrew/include/boost/type_traits/is_union.hpp \
+		/opt/homebrew/include/boost/type_traits/is_scalar.hpp \
+		/opt/homebrew/include/boost/type_traits/is_pointer.hpp \
+		/opt/homebrew/include/boost/type_traits/is_member_pointer.hpp \
+		/opt/homebrew/include/boost/type_traits/is_member_function_pointer.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_member_function_pointer_cxx_11.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_member_function_pointer_cxx_03.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_mem_fun_pointer_impl.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_mem_fun_pointer_tester.hpp \
+		/opt/homebrew/include/boost/type_traits/is_polymorphic.hpp \
+		/opt/homebrew/include/boost/type_traits/add_lvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_unsigned.hpp \
+		/opt/homebrew/include/boost/type_traits/is_const.hpp \
+		/opt/homebrew/include/boost/type_traits/add_const.hpp \
+		/opt/homebrew/include/boost/type_traits/add_volatile.hpp \
+		/opt/homebrew/include/boost/move/move.hpp \
+		/opt/homebrew/include/boost/move/detail/config_begin.hpp \
+		/opt/homebrew/include/boost/move/utility.hpp \
+		/opt/homebrew/include/boost/move/detail/workaround.hpp \
+		/opt/homebrew/include/boost/move/utility_core.hpp \
+		/opt/homebrew/include/boost/move/core.hpp \
+		/opt/homebrew/include/boost/move/detail/type_traits.hpp \
+		/opt/homebrew/include/boost/move/detail/meta_utils.hpp \
+		/opt/homebrew/include/boost/move/detail/meta_utils_core.hpp \
+		/opt/homebrew/include/boost/move/detail/addressof.hpp \
+		/opt/homebrew/include/boost/move/detail/config_end.hpp \
+		/opt/homebrew/include/boost/move/traits.hpp \
+		/opt/homebrew/include/boost/move/iterator.hpp \
+		/opt/homebrew/include/boost/move/detail/iterator_traits.hpp \
+		/opt/homebrew/include/boost/move/detail/std_ns_begin.hpp \
+		/opt/homebrew/include/boost/move/detail/std_ns_end.hpp \
+		/opt/homebrew/include/boost/move/algorithm.hpp \
+		/opt/homebrew/include/boost/move/algo/move.hpp \
+		/opt/homebrew/include/boost/move/detail/iterator_to_raw_pointer.hpp \
+		/opt/homebrew/include/boost/move/detail/to_raw_pointer.hpp \
+		/opt/homebrew/include/boost/move/detail/pointer_element.hpp \
+		/opt/homebrew/include/boost/core/no_exceptions_support.hpp \
+		/opt/homebrew/include/boost/throw_exception.hpp \
+		/opt/homebrew/include/boost/exception/exception.hpp \
+		/opt/homebrew/include/boost/assert/source_location.hpp \
+		/opt/homebrew/include/boost/functional/hash/hash.hpp \
+		/opt/homebrew/include/boost/container_hash/hash.hpp \
+		/opt/homebrew/include/boost/container_hash/hash_fwd.hpp \
+		/opt/homebrew/include/boost/container_hash/hash_is_avalanching.hpp \
+		/opt/homebrew/include/boost/container_hash/is_range.hpp \
+		/opt/homebrew/include/boost/container_hash/is_contiguous_range.hpp \
+		/opt/homebrew/include/boost/container_hash/is_unordered_range.hpp \
+		/opt/homebrew/include/boost/container_hash/is_described_class.hpp \
+		/opt/homebrew/include/boost/describe/bases.hpp \
+		/opt/homebrew/include/boost/describe/modifiers.hpp \
+		/opt/homebrew/include/boost/describe/detail/config.hpp \
+		/opt/homebrew/include/boost/describe/detail/void_t.hpp \
+		/opt/homebrew/include/boost/mp11/algorithm.hpp \
+		/opt/homebrew/include/boost/mp11/list.hpp \
+		/opt/homebrew/include/boost/mp11/integral.hpp \
+		/opt/homebrew/include/boost/mp11/version.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_value.hpp \
+		/opt/homebrew/include/boost/mp11/detail/config.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_list.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_list_v.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_is_list.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_is_value_list.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_front.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_rename.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_defer.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_append.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_count.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_plus.hpp \
+		/opt/homebrew/include/boost/mp11/utility.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_fold.hpp \
+		/opt/homebrew/include/boost/mp11/set.hpp \
+		/opt/homebrew/include/boost/mp11/function.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_min_element.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_void.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_copy_if.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_remove_if.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_map_find.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_with_index.hpp \
+		/opt/homebrew/include/boost/mp11/integer_sequence.hpp \
+		/opt/homebrew/include/boost/describe/members.hpp \
+		/opt/homebrew/include/boost/describe/detail/cx_streq.hpp \
+		/opt/homebrew/include/boost/mp11/bind.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_integral.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_mix.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_tuple_like.hpp \
+		/opt/homebrew/include/boost/container_hash/is_tuple_like.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_range.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/mulx.hpp \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/dist.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/heap.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/allocator.h \
@@ -1250,6 +1468,213 @@ watermark_robust.o: watermark_robust.cpp watermark_robust.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/all_indices.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/kdtree_index.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/dynamic_bitset.h \
+		/opt/homebrew/include/boost/dynamic_bitset.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/dynamic_bitset.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/config.hpp \
+		/opt/homebrew/include/boost/config.hpp \
+		/opt/homebrew/include/boost/config/user.hpp \
+		/opt/homebrew/include/boost/config/detail/select_compiler_config.hpp \
+		/opt/homebrew/include/boost/config/compiler/nvcc.hpp \
+		/opt/homebrew/include/boost/config/compiler/gcc_xml.hpp \
+		/opt/homebrew/include/boost/config/compiler/cray.hpp \
+		/opt/homebrew/include/boost/config/compiler/common_edg.hpp \
+		/opt/homebrew/include/boost/config/compiler/comeau.hpp \
+		/opt/homebrew/include/boost/config/compiler/pathscale.hpp \
+		/opt/homebrew/include/boost/config/compiler/clang.hpp \
+		/opt/homebrew/include/boost/config/compiler/clang_version.hpp \
+		/opt/homebrew/include/boost/config/compiler/intel.hpp \
+		/opt/homebrew/include/boost/config/compiler/visualc.hpp \
+		/opt/homebrew/include/boost/config/pragma_message.hpp \
+		/opt/homebrew/include/boost/config/helper_macros.hpp \
+		/opt/homebrew/include/boost/config/compiler/gcc.hpp \
+		/opt/homebrew/include/boost/config/compiler/digitalmars.hpp \
+		/opt/homebrew/include/boost/config/compiler/kai.hpp \
+		/opt/homebrew/include/boost/config/compiler/sgi_mipspro.hpp \
+		/opt/homebrew/include/boost/config/compiler/compaq_cxx.hpp \
+		/opt/homebrew/include/boost/config/compiler/greenhills.hpp \
+		/opt/homebrew/include/boost/config/compiler/codegear.hpp \
+		/opt/homebrew/include/boost/config/compiler/borland.hpp \
+		/opt/homebrew/include/boost/config/compiler/metrowerks.hpp \
+		/opt/homebrew/include/boost/config/compiler/sunpro_cc.hpp \
+		/opt/homebrew/include/boost/config/compiler/hp_acc.hpp \
+		/opt/homebrew/include/boost/config/compiler/mpw.hpp \
+		/opt/homebrew/include/boost/config/compiler/xlcpp_zos.hpp \
+		/opt/homebrew/include/boost/config/compiler/xlcpp.hpp \
+		/opt/homebrew/include/boost/config/compiler/vacpp.hpp \
+		/opt/homebrew/include/boost/config/compiler/pgi.hpp \
+		/opt/homebrew/include/boost/config/detail/select_stdlib_config.hpp \
+		/opt/homebrew/include/boost/config/stdlib/stlport.hpp \
+		/opt/homebrew/include/boost/config/stdlib/libcomo.hpp \
+		/opt/homebrew/include/boost/config/no_tr1/utility.hpp \
+		/opt/homebrew/include/boost/config/stdlib/roguewave.hpp \
+		/opt/homebrew/include/boost/config/stdlib/libcpp.hpp \
+		/opt/homebrew/include/boost/config/stdlib/libstdcpp3.hpp \
+		/opt/homebrew/include/boost/config/stdlib/sgi.hpp \
+		/opt/homebrew/include/boost/config/stdlib/msl.hpp \
+		/opt/homebrew/include/boost/config/detail/posix_features.hpp \
+		/opt/homebrew/include/boost/config/stdlib/xlcpp_zos.hpp \
+		/opt/homebrew/include/boost/config/stdlib/vacpp.hpp \
+		/opt/homebrew/include/boost/config/stdlib/modena.hpp \
+		/opt/homebrew/include/boost/config/stdlib/dinkumware.hpp \
+		/opt/homebrew/include/boost/config/detail/select_platform_config.hpp \
+		/opt/homebrew/include/boost/config/platform/linux.hpp \
+		/opt/homebrew/include/boost/config/platform/bsd.hpp \
+		/opt/homebrew/include/boost/config/platform/solaris.hpp \
+		/opt/homebrew/include/boost/config/platform/irix.hpp \
+		/opt/homebrew/include/boost/config/platform/hpux.hpp \
+		/opt/homebrew/include/boost/config/platform/cygwin.hpp \
+		/opt/homebrew/include/boost/config/platform/win32.hpp \
+		/opt/homebrew/include/boost/config/platform/beos.hpp \
+		/opt/homebrew/include/boost/config/platform/macos.hpp \
+		/opt/homebrew/include/boost/config/platform/zos.hpp \
+		/opt/homebrew/include/boost/config/platform/aix.hpp \
+		/opt/homebrew/include/boost/config/platform/amigaos.hpp \
+		/opt/homebrew/include/boost/config/platform/qnxnto.hpp \
+		/opt/homebrew/include/boost/config/platform/vxworks.hpp \
+		/opt/homebrew/include/boost/config/platform/symbian.hpp \
+		/opt/homebrew/include/boost/config/platform/cray.hpp \
+		/opt/homebrew/include/boost/config/platform/vms.hpp \
+		/opt/homebrew/include/boost/config/detail/suffix.hpp \
+		/opt/homebrew/include/boost/config/detail/cxx_composite.hpp \
+		/opt/homebrew/include/boost/detail/workaround.hpp \
+		/opt/homebrew/include/boost/config/workaround.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset_fwd.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/detail/dynamic_bitset.hpp \
+		/opt/homebrew/include/boost/core/allocator_access.hpp \
+		/opt/homebrew/include/boost/core/pointer_traits.hpp \
+		/opt/homebrew/include/boost/core/addressof.hpp \
+		/opt/homebrew/include/boost/dynamic_bitset/detail/lowest_bit.hpp \
+		/opt/homebrew/include/boost/integer/integer_log2.hpp \
+		/opt/homebrew/include/boost/assert.hpp \
+		/opt/homebrew/include/boost/current_function.hpp \
+		/opt/homebrew/include/boost/cstdint.hpp \
+		/opt/homebrew/include/boost/limits.hpp \
+		/opt/homebrew/include/boost/core/bit.hpp \
+		/opt/homebrew/include/boost/static_assert.hpp \
+		/opt/homebrew/include/boost/core/enable_if.hpp \
+		/opt/homebrew/include/boost/type_traits/is_integral.hpp \
+		/opt/homebrew/include/boost/type_traits/integral_constant.hpp \
+		/opt/homebrew/include/boost/type_traits/make_unsigned.hpp \
+		/opt/homebrew/include/boost/type_traits/conditional.hpp \
+		/opt/homebrew/include/boost/type_traits/is_signed.hpp \
+		/opt/homebrew/include/boost/type_traits/remove_cv.hpp \
+		/opt/homebrew/include/boost/type_traits/is_enum.hpp \
+		/opt/homebrew/include/boost/type_traits/intrinsics.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/config.hpp \
+		/opt/homebrew/include/boost/version.hpp \
+		/opt/homebrew/include/boost/type_traits/is_same.hpp \
+		/opt/homebrew/include/boost/type_traits/is_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_lvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_rvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_rvalue_reference_msvc10_fix.hpp \
+		/opt/homebrew/include/boost/type_traits/is_volatile.hpp \
+		/opt/homebrew/include/boost/type_traits/is_void.hpp \
+		/opt/homebrew/include/boost/type_traits/add_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_arithmetic.hpp \
+		/opt/homebrew/include/boost/type_traits/is_floating_point.hpp \
+		/opt/homebrew/include/boost/type_traits/is_convertible.hpp \
+		/opt/homebrew/include/boost/type_traits/is_complete.hpp \
+		/opt/homebrew/include/boost/type_traits/declval.hpp \
+		/opt/homebrew/include/boost/type_traits/add_rvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/remove_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_function.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_cxx_11.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_cxx_03.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_ptr_helper.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_ptr_tester.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/yes_no_type.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_function_msvc10_fix.hpp \
+		/opt/homebrew/include/boost/type_traits/is_array.hpp \
+		/opt/homebrew/include/boost/type_traits/is_abstract.hpp \
+		/opt/homebrew/include/boost/type_traits/is_class.hpp \
+		/opt/homebrew/include/boost/type_traits/is_union.hpp \
+		/opt/homebrew/include/boost/type_traits/is_scalar.hpp \
+		/opt/homebrew/include/boost/type_traits/is_pointer.hpp \
+		/opt/homebrew/include/boost/type_traits/is_member_pointer.hpp \
+		/opt/homebrew/include/boost/type_traits/is_member_function_pointer.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_member_function_pointer_cxx_11.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_member_function_pointer_cxx_03.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_mem_fun_pointer_impl.hpp \
+		/opt/homebrew/include/boost/type_traits/detail/is_mem_fun_pointer_tester.hpp \
+		/opt/homebrew/include/boost/type_traits/is_polymorphic.hpp \
+		/opt/homebrew/include/boost/type_traits/add_lvalue_reference.hpp \
+		/opt/homebrew/include/boost/type_traits/is_unsigned.hpp \
+		/opt/homebrew/include/boost/type_traits/is_const.hpp \
+		/opt/homebrew/include/boost/type_traits/add_const.hpp \
+		/opt/homebrew/include/boost/type_traits/add_volatile.hpp \
+		/opt/homebrew/include/boost/move/move.hpp \
+		/opt/homebrew/include/boost/move/detail/config_begin.hpp \
+		/opt/homebrew/include/boost/move/utility.hpp \
+		/opt/homebrew/include/boost/move/detail/workaround.hpp \
+		/opt/homebrew/include/boost/move/utility_core.hpp \
+		/opt/homebrew/include/boost/move/core.hpp \
+		/opt/homebrew/include/boost/move/detail/type_traits.hpp \
+		/opt/homebrew/include/boost/move/detail/meta_utils.hpp \
+		/opt/homebrew/include/boost/move/detail/meta_utils_core.hpp \
+		/opt/homebrew/include/boost/move/detail/addressof.hpp \
+		/opt/homebrew/include/boost/move/detail/config_end.hpp \
+		/opt/homebrew/include/boost/move/traits.hpp \
+		/opt/homebrew/include/boost/move/iterator.hpp \
+		/opt/homebrew/include/boost/move/detail/iterator_traits.hpp \
+		/opt/homebrew/include/boost/move/detail/std_ns_begin.hpp \
+		/opt/homebrew/include/boost/move/detail/std_ns_end.hpp \
+		/opt/homebrew/include/boost/move/algorithm.hpp \
+		/opt/homebrew/include/boost/move/algo/move.hpp \
+		/opt/homebrew/include/boost/move/detail/iterator_to_raw_pointer.hpp \
+		/opt/homebrew/include/boost/move/detail/to_raw_pointer.hpp \
+		/opt/homebrew/include/boost/move/detail/pointer_element.hpp \
+		/opt/homebrew/include/boost/core/no_exceptions_support.hpp \
+		/opt/homebrew/include/boost/throw_exception.hpp \
+		/opt/homebrew/include/boost/exception/exception.hpp \
+		/opt/homebrew/include/boost/assert/source_location.hpp \
+		/opt/homebrew/include/boost/functional/hash/hash.hpp \
+		/opt/homebrew/include/boost/container_hash/hash.hpp \
+		/opt/homebrew/include/boost/container_hash/hash_fwd.hpp \
+		/opt/homebrew/include/boost/container_hash/hash_is_avalanching.hpp \
+		/opt/homebrew/include/boost/container_hash/is_range.hpp \
+		/opt/homebrew/include/boost/container_hash/is_contiguous_range.hpp \
+		/opt/homebrew/include/boost/container_hash/is_unordered_range.hpp \
+		/opt/homebrew/include/boost/container_hash/is_described_class.hpp \
+		/opt/homebrew/include/boost/describe/bases.hpp \
+		/opt/homebrew/include/boost/describe/modifiers.hpp \
+		/opt/homebrew/include/boost/describe/detail/config.hpp \
+		/opt/homebrew/include/boost/describe/detail/void_t.hpp \
+		/opt/homebrew/include/boost/mp11/algorithm.hpp \
+		/opt/homebrew/include/boost/mp11/list.hpp \
+		/opt/homebrew/include/boost/mp11/integral.hpp \
+		/opt/homebrew/include/boost/mp11/version.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_value.hpp \
+		/opt/homebrew/include/boost/mp11/detail/config.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_list.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_list_v.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_is_list.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_is_value_list.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_front.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_rename.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_defer.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_append.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_count.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_plus.hpp \
+		/opt/homebrew/include/boost/mp11/utility.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_fold.hpp \
+		/opt/homebrew/include/boost/mp11/set.hpp \
+		/opt/homebrew/include/boost/mp11/function.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_min_element.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_void.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_copy_if.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_remove_if.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_map_find.hpp \
+		/opt/homebrew/include/boost/mp11/detail/mp_with_index.hpp \
+		/opt/homebrew/include/boost/mp11/integer_sequence.hpp \
+		/opt/homebrew/include/boost/describe/members.hpp \
+		/opt/homebrew/include/boost/describe/detail/cx_streq.hpp \
+		/opt/homebrew/include/boost/mp11/bind.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_integral.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_mix.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_tuple_like.hpp \
+		/opt/homebrew/include/boost/container_hash/is_tuple_like.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/hash_range.hpp \
+		/opt/homebrew/include/boost/container_hash/detail/mulx.hpp \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/dist.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/heap.h \
 		/opt/homebrew/opt/opencv/include/opencv4/opencv2/flann/allocator.h \
@@ -1315,6 +1740,42 @@ ocrmanager.o: ocrmanager.cpp ocrmanager.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qdebug.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QBuffer \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qbuffer.h \
+		/opt/homebrew/include/tesseract/baseapi.h \
+		/opt/homebrew/include/tesseract/export.h \
+		/opt/homebrew/include/tesseract/pageiterator.h \
+		/opt/homebrew/include/tesseract/publictypes.h \
+		/opt/homebrew/include/tesseract/resultiterator.h \
+		/opt/homebrew/include/tesseract/ltrresultiterator.h \
+		/opt/homebrew/include/tesseract/unichar.h \
+		/opt/homebrew/include/tesseract/version.h \
+		/opt/homebrew/include/leptonica/allheaders.h \
+		/opt/homebrew/include/leptonica/alltypes.h \
+		/opt/homebrew/include/leptonica/endianness.h \
+		/opt/homebrew/include/leptonica/environ.h \
+		/opt/homebrew/include/leptonica/array.h \
+		/opt/homebrew/include/leptonica/bbuffer.h \
+		/opt/homebrew/include/leptonica/hashmap.h \
+		/opt/homebrew/include/leptonica/heap.h \
+		/opt/homebrew/include/leptonica/list.h \
+		/opt/homebrew/include/leptonica/ptra.h \
+		/opt/homebrew/include/leptonica/queue.h \
+		/opt/homebrew/include/leptonica/rbtree.h \
+		/opt/homebrew/include/leptonica/stack.h \
+		/opt/homebrew/include/leptonica/arrayaccess.h \
+		/opt/homebrew/include/leptonica/bmf.h \
+		/opt/homebrew/include/leptonica/ccbord.h \
+		/opt/homebrew/include/leptonica/colorfill.h \
+		/opt/homebrew/include/leptonica/dewarp.h \
+		/opt/homebrew/include/leptonica/gplot.h \
+		/opt/homebrew/include/leptonica/imageio.h \
+		/opt/homebrew/include/leptonica/jbclass.h \
+		/opt/homebrew/include/leptonica/morph.h \
+		/opt/homebrew/include/leptonica/pix.h \
+		/opt/homebrew/include/leptonica/recog.h \
+		/opt/homebrew/include/leptonica/regutils.h \
+		/opt/homebrew/include/leptonica/stringcode.h \
+		/opt/homebrew/include/leptonica/sudoku.h \
+		/opt/homebrew/include/leptonica/watershed.h \
 		macocr.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ocrmanager.o ocrmanager.cpp
 

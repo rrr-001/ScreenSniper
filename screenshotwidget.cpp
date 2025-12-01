@@ -104,7 +104,7 @@ void ScreenshotWidget::setupToolbar()
     toolbar->setStyleSheet(
         "QWidget { background-color: rgba(40, 40, 40, 200); border-radius: 5px; }"
         "QPushButton { background-color: rgba(60, 60, 60, 255); color: white; "
-        "border: none; padding: 8px 15px; border-radius: 3px; font-size: 13px; }"
+        "border: none; padding: 6px; border-radius: 3px; }"
         "QPushButton:hover { background-color: rgba(80, 80, 80, 255); }"
         "QPushButton:pressed { background-color: rgba(50, 50, 50, 255); }"
         "QLabel { background-color: transparent; color: white; padding: 5px; font-size: 12px; }"
@@ -115,19 +115,72 @@ void ScreenshotWidget::setupToolbar()
     layout->setContentsMargins(10, 5, 10, 5);
 
     // 绘制工具
-    btnShapes = new QPushButton("形状", toolbar);
-    btnText = new QPushButton("文字", toolbar);
-    btnPen = new QPushButton("画笔", toolbar);
-    btnMosaic = new QPushButton("马赛克", toolbar);
-    btnBlur = new QPushButton("高斯模糊", toolbar);    // 新增模糊按钮
-    btnWatermark = new QPushButton("隐水印", toolbar); // 新增隐水印
-    btnOCR = new QPushButton("OCR", toolbar);          // 新增 OCR 按钮
+    btnShapes = new QPushButton(toolbar);
+    btnShapes->setIcon(QIcon(":/icons/icons/shapes.svg"));
+    btnShapes->setIconSize(QSize(20, 20));
+    btnShapes->setToolTip("形状");
+    btnShapes->setFixedSize(36, 36);
+
+    btnText = new QPushButton(toolbar);
+    btnText->setIcon(QIcon(":/icons/icons/text.svg"));
+    btnText->setIconSize(QSize(20, 20));
+    btnText->setToolTip("文字");
+    btnText->setFixedSize(36, 36);
+
+    btnPen = new QPushButton(toolbar);
+    btnPen->setIcon(QIcon(":/icons/icons/pen.svg"));
+    btnPen->setIconSize(QSize(20, 20));
+    btnPen->setToolTip("画笔");
+    btnPen->setFixedSize(36, 36);
+
+    btnMosaic = new QPushButton(toolbar);
+    btnMosaic->setIcon(QIcon(":/icons/icons/mosaic.svg"));
+    btnMosaic->setIconSize(QSize(20, 20));
+    btnMosaic->setToolTip("马赛克");
+    btnMosaic->setFixedSize(36, 36);
+
+    btnBlur = new QPushButton(toolbar);
+    btnBlur->setIcon(QIcon(":/icons/icons/blur.svg"));
+    btnBlur->setIconSize(QSize(20, 20));
+    btnBlur->setToolTip("高斯模糊");
+    btnBlur->setFixedSize(36, 36);
+
+    btnWatermark = new QPushButton(toolbar);
+    btnWatermark->setIcon(QIcon(":/icons/icons/watermark.svg"));
+    btnWatermark->setIconSize(QSize(20, 20));
+    btnWatermark->setToolTip("隐水印");
+    btnWatermark->setFixedSize(36, 36);
+
+    btnOCR = new QPushButton(toolbar);
+    btnOCR->setIcon(QIcon(":/icons/icons/ocr.svg"));
+    btnOCR->setIconSize(QSize(20, 20));
+    btnOCR->setToolTip("OCR");
+    btnOCR->setFixedSize(36, 36);
 
     // 操作按钮
-    btnSave = new QPushButton("保存", toolbar);
-    btnCopy = new QPushButton("复制", toolbar);
-    btnPin = new QPushButton("Pin", toolbar);
-    btnCancel = new QPushButton("取消", toolbar);
+    btnSave = new QPushButton(toolbar);
+    btnSave->setIcon(QIcon(":/icons/icons/save.svg"));
+    btnSave->setIconSize(QSize(20, 20));
+    btnSave->setToolTip("保存");
+    btnSave->setFixedSize(36, 36);
+
+    btnCopy = new QPushButton(toolbar);
+    btnCopy->setIcon(QIcon(":/icons/icons/copy.svg"));
+    btnCopy->setIconSize(QSize(20, 20));
+    btnCopy->setToolTip("复制");
+    btnCopy->setFixedSize(36, 36);
+
+    btnPin = new QPushButton(toolbar);
+    btnPin->setIcon(QIcon(":/icons/icons/pin.svg"));
+    btnPin->setIconSize(QSize(20, 20));
+    btnPin->setToolTip("Pin");
+    btnPin->setFixedSize(36, 36);
+
+    btnCancel = new QPushButton(toolbar);
+    btnCancel->setIcon(QIcon(":/icons/icons/cancel.svg"));
+    btnCancel->setIconSize(QSize(20, 20));
+    btnCancel->setToolTip("取消");
+    btnCancel->setFixedSize(36, 36);
 
     layout->addWidget(btnShapes);
     layout->addWidget(btnText);
@@ -2556,9 +2609,10 @@ void ScreenshotWidget::captureWindow(QPoint mousePos)
 #ifdef Q_OS_WIN
 BOOL CALLBACK ScreenshotWidget::EnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
-    QList<WindowInfo>* windowList = reinterpret_cast<QList<WindowInfo>*>(lParam);
+    QList<WindowInfo> *windowList = reinterpret_cast<QList<WindowInfo> *>(lParam);
     // 过滤：隐藏窗口、最小化窗口
-    if (!hwnd || !IsWindowVisible(hwnd) || IsIconic(hwnd)) {
+    if (!hwnd || !IsWindowVisible(hwnd) || IsIconic(hwnd))
+    {
         return TRUE;
     }
 
@@ -2567,13 +2621,14 @@ BOOL CALLBACK ScreenshotWidget::EnumWindowsProc(HWND hwnd, LPARAM lParam)
     GetWindowTextA(hwnd, titleBuf, sizeof(titleBuf));
     QString title = QString::fromLocal8Bit(titleBuf);
 
-    if (title.isEmpty() || title == "设置") {
+    if (title.isEmpty() || title == "设置")
+    {
         LONG style = GetWindowLongPtrA(hwnd, GWL_STYLE);
-        if ((style & WS_CHILD) || ((style & WS_POPUP) && !(style & WS_CAPTION))) {
+        if ((style & WS_CHILD) || ((style & WS_POPUP) && !(style & WS_CAPTION)))
+        {
             return TRUE;
         }
     }
-
 
     // 过滤截图软件自身窗口
     DWORD pid = 0;
@@ -2583,7 +2638,8 @@ BOOL CALLBACK ScreenshotWidget::EnumWindowsProc(HWND hwnd, LPARAM lParam)
     GetModuleBaseNameA(hProcess, nullptr, exeName, sizeof(exeName));
 
     CloseHandle(hProcess);
-    if (QString::fromLocal8Bit(exeName) == QCoreApplication::applicationName().toLocal8Bit()) {
+    if (QString::fromLocal8Bit(exeName) == QCoreApplication::applicationName().toLocal8Bit())
+    {
         return TRUE;
     }
 
@@ -2592,20 +2648,23 @@ BOOL CALLBACK ScreenshotWidget::EnumWindowsProc(HWND hwnd, LPARAM lParam)
     int width = winRect.right - winRect.left;
     int height = winRect.bottom - winRect.top;
     // 过滤过小窗口
-    if (width < 50 && height < 50) {
+    if (width < 50 && height < 50)
+    {
         return TRUE;
     }
-    //过滤全屏/接近全屏的设置窗口
-    QScreen* primaryScreen = QGuiApplication::primaryScreen();
+    // 过滤全屏/接近全屏的设置窗口
+    QScreen *primaryScreen = QGuiApplication::primaryScreen();
     QRect screenRect = primaryScreen->geometry();
     bool isNearFullScreen = (qAbs(width - screenRect.width()) < 20) &&
-            (qAbs(height - screenRect.height()) < 20);
-    if(isNearFullScreen){
+                            (qAbs(height - screenRect.height()) < 20);
+    if (isNearFullScreen)
+    {
         // 检测是否有有效子窗口
         bool hasValidChild = false;
         EnumChildWindows(hwnd, ScreenshotWidget::EnumChildProc, reinterpret_cast<LPARAM>(&hasValidChild));
 
-        if (!hasValidChild) {
+        if (!hasValidChild)
+        {
             return TRUE; // 全屏+无有效子窗口过滤
         }
     }
@@ -2670,13 +2729,15 @@ void ScreenshotWidget::showWatermarkDialog() // 嵌入水印
 #ifdef Q_OS_WIN
 BOOL CALLBACK ScreenshotWidget::EnumChildProc(HWND childHwnd, LPARAM lParam)
 {
-    bool* pHasValid = reinterpret_cast<bool*>(lParam);
-    if (IsWindowVisible(childHwnd)) {
+    bool *pHasValid = reinterpret_cast<bool *>(lParam);
+    if (IsWindowVisible(childHwnd))
+    {
         RECT childRect;
         GetWindowRect(childHwnd, &childRect);
         int cw = childRect.right - childRect.left;
         int ch = childRect.bottom - childRect.top;
-        if (cw > 50 && ch > 50) { // 子窗口尺寸有效
+        if (cw > 50 && ch > 50)
+        { // 子窗口尺寸有效
             *pHasValid = true;
             return FALSE; // 找到即停止枚举
         }
@@ -2690,20 +2751,19 @@ QRect ScreenshotWidget::getAccurateWindowRect(HWND hwnd)
     // 先尝试读取 Windows DWM 扩展边框
     RECT extendedFrameRect;
     HRESULT hr = DwmGetWindowAttribute(
-                hwnd,
-                DWMWA_EXTENDED_FRAME_BOUNDS, // 读取客户区实际边界
-                &extendedFrameRect,
-                sizeof(extendedFrameRect)
-                );
+        hwnd,
+        DWMWA_EXTENDED_FRAME_BOUNDS, // 读取客户区实际边界
+        &extendedFrameRect,
+        sizeof(extendedFrameRect));
 
-    if (SUCCEEDED(hr)) {
+    if (SUCCEEDED(hr))
+    {
         // 成功获取：直接返回
         return QRect(
-                    extendedFrameRect.left * devicePixelRatio,
-                    extendedFrameRect.top * devicePixelRatio,
-                    (extendedFrameRect.right - extendedFrameRect.left) * devicePixelRatio,
-                    (extendedFrameRect.bottom - extendedFrameRect.top) * devicePixelRatio
-                    );
+            extendedFrameRect.left * devicePixelRatio,
+            extendedFrameRect.top * devicePixelRatio,
+            (extendedFrameRect.right - extendedFrameRect.left) * devicePixelRatio,
+            (extendedFrameRect.bottom - extendedFrameRect.top) * devicePixelRatio);
     }
 
     // 最终外边界
