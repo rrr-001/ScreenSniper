@@ -48,7 +48,7 @@ QString PinWidget::getText(const QString &key, const QString &defaultText) const
 void PinWidget::setMainWindow(QWidget *mainWin)
 {
     mainWindow = mainWin;
-    
+
     if (mainWindow)
     {
         // 连接语言变化信号

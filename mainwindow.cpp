@@ -22,10 +22,10 @@
 #include <QDialogButtonBox>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), 
-      ui(new Ui::MainWindow), 
-      trayIcon(nullptr), 
-      trayMenu(nullptr), 
+    : QMainWindow(parent),
+      ui(new Ui::MainWindow),
+      trayIcon(nullptr),
+      trayMenu(nullptr),
       currentLanguage("zh"),
       btnFullScreen(nullptr),
       btnArea(nullptr),
@@ -318,10 +318,10 @@ void MainWindow::switchLanguage(const QString &language)
     qDebug() << "语言已切换到:" << language;
 
     saveLanguageSettings();
-    
+
     // 更新主窗口的 UI 文本
     updateUI();
-    
+
     // 发射语言变化信号，通知所有连接的组件（如 ScreenshotWidget、PinWidget）
     emit languageChanged(language);
 }
@@ -337,7 +337,7 @@ void MainWindow::updateUI()
     {
         trayIcon->setToolTip(getText("tray_tooltip", "ScreenSniper - 截图工具"));
     }
-    
+
     // 更新主窗口按钮文本
     if (btnFullScreen)
         btnFullScreen->setText(getText("btn_fullscreen", "截取全屏 (Ctrl+Shift+F)"));
@@ -345,7 +345,7 @@ void MainWindow::updateUI()
         btnArea->setText(getText("btn_area", "截取区域 (Ctrl+Shift+A)"));
     if (btnSettings)
         btnSettings->setText(getText("btn_settings", "设置"));
-    
+
     // 更新托盘菜单文本
     if (actionFullScreen)
         actionFullScreen->setText(getText("tray_fullscreen", "截取全屏"));

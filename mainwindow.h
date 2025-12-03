@@ -50,7 +50,7 @@ private:
     QMenu *trayMenu;
     QString currentLanguage;  // 当前语言设置: "zh", "en", "zhHK"
     QJsonObject translations; // 当前语言的翻译数据
-    
+
     // UI 元素引用，用于更新文本
     QPushButton *btnFullScreen;
     QPushButton *btnArea;

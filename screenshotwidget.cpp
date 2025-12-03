@@ -132,13 +132,13 @@ QString ScreenshotWidget::getText(const QString &key, const QString &defaultText
 void ScreenshotWidget::setMainWindow(QWidget *mainWin)
 {
     mainWindow = mainWin;
-    
+
     if (mainWindow)
     {
         // 连接语言变化信号
         connect(mainWindow, SIGNAL(languageChanged(QString)),
                 this, SLOT(onLanguageChanged()));
-        
+
         // 初始化时更新工具提示
         updateTooltips();
     }
