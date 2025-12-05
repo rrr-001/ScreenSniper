@@ -1605,7 +1605,12 @@ void ScreenshotWidget::cancelCapture()
 
 void ScreenshotWidget::breakCapture()
 {
-    QApplication::quit();
+    // QApplication::quit()
+    if (mainWindow)
+    {
+        mainWindow->show();
+    }
+    close();
 }
 
 void ScreenshotWidget::updateToolbarPosition()
