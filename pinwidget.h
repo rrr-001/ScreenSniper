@@ -10,7 +10,7 @@ class PinWidget : public QWidget
     Q_OBJECT
 
 public:
-    // 构造函数：接收一张截图图片
+    // 接收一张截图图片
     explicit PinWidget(const QPixmap &pixmap, QWidget *parent = nullptr);
 
     // 国际化支持
@@ -21,7 +21,7 @@ private slots:
     void onLanguageChanged(); // 响应语言变化
 
 protected:
-    // 核心绘制：把图片画出来
+    // 把图片画出来
     void paintEvent(QPaintEvent *event) override;
 
     // 鼠标交互：实现拖拽移动
