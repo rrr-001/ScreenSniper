@@ -37,18 +37,18 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // 从I18nManager获取当前语言
-    currentLanguage = I18nManager::instance()->currentLanguage();
-
-    setWindowTitle(getText("app_title", "ScreenSniper - 截图工具"));
-    resize(400, 300);
-
-    // 连接I18nManager的语言变化信号
+    // 先连接I18nManager的语言变化信号
     connect(I18nManager::instance(), &I18nManager::languageChanged, this, [this](const QString &newLanguage)
             {
         currentLanguage = newLanguage;
         updateUI();
         emit languageChanged(newLanguage); });
+
+    // 从I18nManager获取当前语言
+    currentLanguage = I18nManager::instance()->currentLanguage();
+
+    setWindowTitle(getText("app_title", "ScreenSniper - 截图工具"));
+    resize(400, 300);
 
     setupUI();
     setupTrayIcon();
