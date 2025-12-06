@@ -1,4 +1,5 @@
 QT       += core gui widgets
+QT       += core gui network
 
 
 win32 {
@@ -90,6 +91,8 @@ win32 {
 
 
 SOURCES += \
+    aiconfigmanager.cpp \
+    aimanager.cpp \
     main.cpp \
     mainwindow.cpp \
     pinwidget.cpp \
@@ -99,6 +102,8 @@ SOURCES += \
     i18nmanager.cpp
 
 HEADERS += \
+    aiconfigmanager.h \
+    aimanager.h \
     mainwindow.h \
     pinwidget.h \
     screenshotwidget.h \

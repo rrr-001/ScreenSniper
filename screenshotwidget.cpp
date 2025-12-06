@@ -83,6 +83,26 @@ ScreenshotWidget::ScreenshotWidget(QWidget *parent)
     // 初始化I18n连接
     initializeI18nConnection();
 
+    // 图片生成文字描述
+    m_aiManager = new AiManager(this);
+
+    // 连接 AI 处理成功的信号
+    connect(m_aiManager, &AiManager::descriptionGenerated, this, [this](QString text){
+        // 1. 将生成的文字复制到剪贴板
+        QClipboard *clipboard = QGuiApplication::clipboard();
+        clipboard->setText(text);
+
+        // 2. 弹窗提示用户
+        QMessageBox::information(this, getText("ai_description_complete_title", "AI 识别完成"),
+                                 getText("ai_description_copied", "描述内容已复制到剪贴板：\n\n") + text);
+
+    });
+
+    // 连接 AI 处理失败的信号
+    connect(m_aiManager, &AiManager::errorOccurred, this, [this](QString errorMsg){
+        QMessageBox::warning(this, getText("ai_description_failed_title", "AI 识别失败"), errorMsg);
+    });
+
     setupToolbar();
     setTextToolbar();
     setupPenToolbar();
@@ -157,6 +177,8 @@ void ScreenshotWidget::updateTooltips()
 #endif
     if (btnOCR)
         btnOCR->setToolTip(getText("tooltip_ocr", "OCR文字识别"));
+    if (btnAIDescription)
+        btnAIDescription->setToolTip(getText("tooltip_ai_description", "AI图片描述"));
     if (btnSave)
         btnSave->setToolTip(getText("tooltip_save", "保存"));
     if (btnCopy)
@@ -241,6 +263,12 @@ void ScreenshotWidget::setupToolbar()
     btnOCR->setToolTip(getText("tooltip_ocr", "OCR文字识别"));
     btnOCR->setFixedSize(36, 36);
 
+    btnAIDescription = new QPushButton(toolbar);
+    btnAIDescription->setIcon(QIcon(":/icons/icons/aidesc.svg"));
+    btnAIDescription->setIconSize(QSize(20, 20));
+    btnAIDescription->setToolTip(getText("tooltip_ai_description", "AI图片描述"));
+    btnAIDescription->setFixedSize(36, 36);
+
     // 操作按钮
     btnSave = new QPushButton(toolbar);
     btnSave->setIcon(QIcon(":/icons/icons/save.svg"));
@@ -282,6 +310,7 @@ void ScreenshotWidget::setupToolbar()
     layout->addWidget(btnWatermark); // 水印按钮
 #endif
     layout->addWidget(btnOCR); // OCR 按钮
+    layout->addWidget(btnAIDescription); // AI图片描述按钮
 
     layout->addSpacing(10);
     layout->addWidget(btnSave);
@@ -320,6 +349,7 @@ void ScreenshotWidget::setupToolbar()
     connect(btnCancel, &QPushButton::clicked, this, &ScreenshotWidget::cancelCapture);
     connect(btnBreak, &QPushButton::clicked, this, &ScreenshotWidget::breakCapture);
     connect(btnOCR, &QPushButton::clicked, this, &ScreenshotWidget::performOCR);
+    connect(btnAIDescription, &QPushButton::clicked, this, &ScreenshotWidget::onAiDescriptionBtnClicked);
 
     connect(btnShapes, &QPushButton::clicked, this, [this]()
             { toggleSubToolbar(shapesToolbar); });
@@ -370,6 +400,8 @@ void ScreenshotWidget::setupToolbar()
 
     connect(btnStrengthUp, &QPushButton::clicked, this, &ScreenshotWidget::increaseEffectStrength);
     connect(btnStrengthDown, &QPushButton::clicked, this, &ScreenshotWidget::decreaseEffectStrength);
+
+
 
     toolbar->adjustSize();
     EffectToolbar->adjustSize();
@@ -3417,4 +3449,22 @@ void ScreenshotWidget::performOCR()
         QString errorMsg = text.isEmpty() ? getText("ocr_no_text", "未能识别到文字。") : text;
         QMessageBox::warning(this, getText("ocr_failed_title", "OCR 失败"), errorMsg);
     }
+}
+
+//图片生成文字描述
+void ScreenshotWidget::onAiDescriptionBtnClicked()
+{
+    if (selectedRect.isNull() || !selected)
+    {
+        QMessageBox::warning(this, getText("ai_description_warning_title", "提示"),
+                            getText("ai_description_no_selection", "请先选择截图区域"));
+        return;
+    }
+
+    // 获取当前截图（包含绘制的内容）
+    QPixmap capture = this->grab(selectedRect);
+    QImage image = capture.toImage();
+
+    // 调用AI管理器生成描述
+    m_aiManager->generateImageDescription(image);
 }

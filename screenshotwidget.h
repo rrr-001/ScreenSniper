@@ -1,8 +1,6 @@
 #ifndef SCREENSHOTWIDGET_H
 #define SCREENSHOTWIDGET_H
 
-#include "pinwidget.h"
-
 #include <QWidget>
 #include <QPixmap>
 #include <QRect>
@@ -14,6 +12,8 @@
 #include <QTextEdit>
 #include <QLineEdit>
 #include "i18nmanager.h"
+#include "pinwidget.h"
+#include "aimanager.h"
 
 // 绘制形状数据结构
 struct DrawnArrow
@@ -182,6 +182,7 @@ private:
     void editExistingText(int textIndex);
     void handleNoneMode(const QPoint &clickPos);
 
+    //pin到桌面
     void pinToDesktop();
     // 窗口识别函数
     void captureWindow(QPoint mousePos);
@@ -249,6 +250,7 @@ private:
     QPushButton *btnWatermark; // 水印按钮
 #endif
     QPushButton *btnOCR; // OCR 按钮
+    QPushButton *btnAIDescription; // AI图片描述按钮
 
     // 尺寸显示标签
     QLabel *sizeLabel;
@@ -364,6 +366,10 @@ private:
 
     // 国际化相关
     QWidget *mainWindow;
+
+    //图片生成文字描述相关
+    AiManager *m_aiManager;
+    void onAiDescriptionBtnClicked();
 };
 
 #endif // SCREENSHOTWIDGET_H
