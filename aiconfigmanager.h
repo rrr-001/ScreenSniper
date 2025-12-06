@@ -2,10 +2,12 @@
 #define AICONFIGMANAGER_H
 
 #include <QString>
-#include <QSettings>
 #include <QCoreApplication>
 #include <QFile>
 #include <QDir>
+#include <QMap>
+#include <QStringList>
+#include <QTextStream>
 
 class AIConfigManager
 {
@@ -41,10 +43,23 @@ private:
     AIConfigManager();
     QString m_configPath;
 
+    // 手动解析INI文件
+    QMap<QString, QMap<QString, QString>> parseIniFile(const QString &filePath);
+    // 保存INI文件
+    void saveIniFile(const QString &filePath, const QMap<QString, QMap<QString, QString>> &config);
+    
     // 将ServiceType转换为字符串
     QString serviceTypeToString(ServiceType type) const;
     // 将字符串转换为ServiceType
     ServiceType stringToServiceType(const QString &typeStr) const;
+    
+    // 从配置中获取值
+    QString getConfigValue(const QString &section, const QString &key, const QString &defaultValue = "");
+    // 设置配置值
+    void setConfigValue(const QString &section, const QString &key, const QString &value);
+    
+    // 当前配置缓存
+    QMap<QString, QMap<QString, QString>> m_configCache;
 };
 
 #endif // AICONFIGMANAGER_H

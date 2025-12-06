@@ -1051,14 +1051,18 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 aiconfigmanager.o: aiconfigmanager.cpp aiconfigmanager.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QString \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qstring.h \
-		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QSettings \
-		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qsettings.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QCoreApplication \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qcoreapplication.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QFile \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qfile.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QDir \
-		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qdir.h
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qdir.h \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QMap \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qmap.h \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QStringList \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qstringlist.h \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QTextStream \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qtextstream.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o aiconfigmanager.o aiconfigmanager.cpp
 
 aimanager.o: aimanager.cpp aimanager.h \
@@ -1081,14 +1085,18 @@ aimanager.o: aimanager.cpp aimanager.h \
 		aiconfigmanager.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QString \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qstring.h \
-		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QSettings \
-		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qsettings.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QCoreApplication \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qcoreapplication.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QFile \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qfile.h \
 		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QDir \
-		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qdir.h
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qdir.h \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QMap \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qmap.h \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QStringList \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qstringlist.h \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/QTextStream \
+		/opt/homebrew/Cellar/qt@5/5.15.18/lib/QtCore.framework/Headers/qtextstream.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o aimanager.o aimanager.cpp
 
 main.o: main.cpp mainwindow.h \

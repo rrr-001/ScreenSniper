@@ -1,5 +1,10 @@
 #include "aimanager.h"
 #include "aiconfigmanager.h"
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QBuffer>
+#include <QDebug>
 
 AiManager::AiManager(QObject *parent) : QObject(parent)
 {
@@ -10,212 +15,276 @@ void AiManager::generateImageDescription(const QImage &image)
 {
     AIConfigManager::ServiceType serviceType = AIConfigManager::instance().getServiceType();
     QString apiKey = AIConfigManager::instance().getApiKey();
-    
-    // 验证API密钥
-    bool isInvalid = false;
-    if (serviceType == AIConfigManager::OpenAI) {
-        if (apiKey.isEmpty()) {
-            isInvalid = true;
-        }
-    } else {
-        if (apiKey.isEmpty() || apiKey == "sk-c30504bf26dd4dfebb3342e7f2a9af4d") {
-            isInvalid = true;
-        }
-    }
-    
-    if (isInvalid)
+
+    // 验证 API Key
+    if (apiKey.isEmpty())
     {
-        QString serviceName = (serviceType == AIConfigManager::OpenAI ? "OpenAI" : "阿里云");
-        emit errorOccurred(QString("请在 config.ini 中配置正确的 %1 API Key").arg(serviceName));
+        emit errorOccurred("请在 config.ini 中配置正确的 API Key");
         return;
     }
 
     QString base64Image = imageToBase64(image);
 
+    // --------------------------
+    //       OpenAI 模式
+    // --------------------------
     if (serviceType == AIConfigManager::OpenAI)
     {
-        // OpenAI API 调用
-        QString endpoint = AIConfigManager::instance().getEndpoint();
+        QString endpoint = AIConfigManager::instance().getEndpoint(); // https://api.openai.com/v1/responses
         QUrl url(endpoint);
         QNetworkRequest request(url);
 
-        // 设置 Header
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         request.setRawHeader("Authorization", ("Bearer " + apiKey).toUtf8());
 
-        // 构造 JSON Body (适配 OpenAI GPT-4V 格式)
-        QJsonObject textContent;
-        textContent["type"] = "text";
-        textContent["text"] = "请详细描述这张图片中的内容，如果是文字请提取出来。";
+        // image_url 对象
+        QJsonObject imgUrlObj;
+        imgUrlObj["url"] = "data:image/png;base64," + base64Image;
 
-        QJsonObject imageUrl;
-        imageUrl["url"] = "data:image/png;base64," + base64Image;
-
-        QJsonObject imageContent;
-        imageContent["type"] = "image_url";
-        imageContent["image_url"] = imageUrl;
-
+        // content 数组
         QJsonArray contentArray;
-        contentArray.append(textContent);
-        contentArray.append(imageContent);
 
-        QJsonObject message;
-        message["role"] = "user";
-        message["content"] = contentArray;
+        // text
+        QJsonObject textObj;
+        textObj["type"] = "text";
+        textObj["text"] = "请详细描述这张图片的内容，如有文字请提取。";
+        contentArray.append(textObj);
 
-        QJsonArray input;
-        input.append(message);
+        // image
+        QJsonObject imgObj;
+        imgObj["type"] = "input_image";
+        imgObj["image_url"] = imgUrlObj;
+        contentArray.append(imgObj);
 
+        // user message
+        QJsonObject messageObj;
+        messageObj["role"] = "user";
+        messageObj["content"] = contentArray;
+
+        QJsonArray inputArray;
+        inputArray.append(messageObj);
+
+        // final body
         QJsonObject jsonBody;
-        jsonBody["model"] = AIConfigManager::instance().getModelName();
-        jsonBody["input"] = input;
-        jsonBody["max_tokens"] = 300;
+        jsonBody["model"] = AIConfigManager::instance().getModelName(); // gpt-4o
+        jsonBody["input"] = inputArray;
+        jsonBody["max_tokens"] = 1000000; // 注意tokens设置过小可能导致限流 429
 
-        // 发送 POST 请求
-        QNetworkReply *reply = m_networkManager->post(request, QJsonDocument(jsonBody).toJson());
+        // debug（你可以打开看看请求是否正确）
+        qDebug() << "=== OpenAI Request ===";
+        qDebug().noquote() << QJsonDocument(jsonBody).toJson(QJsonDocument::Indented);
+
+        QNetworkReply *reply = m_networkManager->post(
+            request,
+            QJsonDocument(jsonBody).toJson());
         connect(reply, &QNetworkReply::finished, this, [this, reply]()
-                { onNetworkReply(reply); });
+                { onOpenAIReply(reply); });
+
+        return;
     }
-    else
-    {
-        // 阿里云 API 调用（原有逻辑）
-        QUrl url("https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation");
-        QNetworkRequest request(url);
 
-        // 设置 Header
-        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        request.setRawHeader("Authorization", ("Bearer " + apiKey).toUtf8());
+    // --------------------------
+    //       阿里云模式
+    // --------------------------
+    QUrl url("https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation");
+    QNetworkRequest request(url);
 
-        // 处理图片为 Base64
-        QString base64ImageWithPrefix = "data:image/png;base64," + base64Image;
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", ("Bearer " + apiKey).toUtf8());
 
-        // 构造 JSON Body (适配 Qwen-VL 格式)
-        QJsonObject textContent;
-        textContent["text"] = "请详细描述这张图片中的内容，如果是文字请提取出来。";
+    QString base64WithPrefix = "data:image/png;base64," + base64Image;
 
-        QJsonObject imageContent;
-        imageContent["image"] = base64ImageWithPrefix;
+    QJsonObject textObj;
+    textObj["text"] = "请详细描述这张图片中的内容，如果是文字请提取出来。";
 
-        QJsonArray contentArray;
-        contentArray.append(imageContent);
-        contentArray.append(textContent);
+    QJsonObject imgObj;
+    imgObj["image"] = base64WithPrefix;
 
-        QJsonObject message;
-        message["role"] = "user";
-        message["content"] = contentArray;
+    QJsonArray contentArray;
+    contentArray.append(imgObj);
+    contentArray.append(textObj);
 
-        QJsonArray messages;
-        messages.append(message);
+    QJsonObject msgObj;
+    msgObj["role"] = "user";
+    msgObj["content"] = contentArray;
 
-        QJsonObject input;
-        input["messages"] = messages;
+    QJsonArray messages;
+    messages.append(msgObj);
 
-        QJsonObject jsonBody;
-        jsonBody["model"] = AIConfigManager::instance().getModelName();
-        jsonBody["input"] = input;
+    QJsonObject input;
+    input["messages"] = messages;
 
-        // 发送 POST 请求
-        QNetworkReply *reply = m_networkManager->post(request, QJsonDocument(jsonBody).toJson());
-        connect(reply, &QNetworkReply::finished, this, [this, reply]()
-                { onNetworkReply(reply); });
-    }
+    QJsonObject jsonBody;
+    jsonBody["model"] = AIConfigManager::instance().getModelName();
+    jsonBody["input"] = input;
+
+    QNetworkReply *reply = m_networkManager->post(request, QJsonDocument(jsonBody).toJson());
+    connect(reply, &QNetworkReply::finished, this, [this, reply]()
+            { onAliyunReply(reply); });
 }
 
-void AiManager::onNetworkReply(QNetworkReply *reply)
+// =======================================
+//        OpenAI Response 解析
+// =======================================
+void AiManager::onOpenAIReply(QNetworkReply *reply)
 {
-    reply->deleteLater(); // 稍后自动释放
+    reply->deleteLater();
 
-    if (reply->error() != QNetworkReply::NoError) {
+    if (reply->error() != QNetworkReply::NoError)
+    {
+        // 获取 HTTP 状态码
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+        // 特殊处理 429 错误：账号被限流了
+        if (statusCode == 429)
+        {
+            emit errorOccurred("请求过于频繁，请稍后再试。OpenAI API 有速率限制，建议等待几秒后重试。");
+            return;
+        }
+
+        // 其他错误
+        QString errorMsg = "网络错误";
+        if (statusCode > 0)
+        {
+            errorMsg += QString(" (HTTP %1)").arg(statusCode);
+        }
+        errorMsg += ": " + reply->errorString();
+
+        emit errorOccurred(errorMsg);
+        return;
+    }
+
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    qDebug() << "=== OpenAI Response ===";
+    qDebug().noquote() << doc.toJson(QJsonDocument::Indented);
+
+    if (!doc.isObject())
+    {
+        emit errorOccurred("解析失败：不是有效 JSON");
+        return;
+    }
+
+    QJsonObject obj = doc.object();
+
+    // 错误处理
+    if (obj.contains("error"))
+    {
+        QString msg = obj["error"].toObject()["message"].toString();
+        QString errorType = obj["error"].toObject()["type"].toString();
+
+        // 详细的错误信息
+        QString fullMsg = "OpenAI API 错误";
+        if (!errorType.isEmpty())
+        {
+            fullMsg += " (" + errorType + ")";
+        }
+        fullMsg += ": " + msg;
+
+        emit errorOccurred(fullMsg);
+        return;
+    }
+
+    // 正确格式：output → content → text
+    if (obj.contains("output"))
+    {
+        QJsonArray output = obj["output"].toArray();
+
+        if (!output.isEmpty())
+        {
+            QJsonObject first = output[0].toObject();
+
+            if (first.contains("content"))
+            {
+                QJsonArray contentArr = first["content"].toArray();
+
+                QString result;
+
+                for (auto v : contentArr)
+                {
+                    QJsonObject c = v.toObject();
+                    if (c["type"].toString() == "text")
+                    {
+                        result += c["text"].toString();
+                    }
+                }
+
+                if (!result.isEmpty())
+                {
+                    emit descriptionGenerated(result);
+                    return;
+                }
+            }
+        }
+    }
+
+    emit errorOccurred("OpenAI 返回格式无法解析");
+}
+
+// =======================================
+//        阿里云 Response 解析
+// =======================================
+void AiManager::onAliyunReply(QNetworkReply *reply)
+{
+    reply->deleteLater();
+
+    if (reply->error() != QNetworkReply::NoError)
+    {
         emit errorOccurred("网络错误: " + reply->errorString());
         return;
     }
 
-    QByteArray responseData = reply->readAll();
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
-    
-    if (jsonDoc.isNull()) {
-        emit errorOccurred("解析响应失败: 无效的JSON格式");
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    if (!doc.isObject())
+    {
+        emit errorOccurred("阿里云 JSON 解析失败");
         return;
     }
-    
-    QJsonObject jsonObj = jsonDoc.object();
 
-    AIConfigManager::ServiceType serviceType = AIConfigManager::instance().getServiceType();
+    QJsonObject obj = doc.object();
+    if (obj.contains("code") && obj.contains("message"))
+    {
+        emit errorOccurred("阿里云错误: " + obj["message"].toString());
+        return;
+    }
 
-    if (serviceType == AIConfigManager::OpenAI) {
-        // 解析 OpenAI 响应
-        if (jsonObj.contains("error")) {
-            // 优先处理API错误
-            QJsonObject errorObj = jsonObj["error"].toObject();
-            QString errorMsg = errorObj["message"].toString();
-            QString errorType = errorObj["type"].toString();
-            emit errorOccurred(QString("OpenAI API 错误 (%1): %2").arg(errorType).arg(errorMsg));
-            return;
-        }
-        
-        if (jsonObj.contains("choices")) {
-            QJsonArray choices = jsonObj["choices"].toArray();
-            if (!choices.isEmpty()) {
-                QJsonObject firstChoice = choices[0].toObject();
-                if (firstChoice.contains("message")) {
-                    QJsonObject msg = firstChoice["message"].toObject();
-                    if (msg.contains("content")) {
-                        QString resultText = msg["content"].toString();
-                        emit descriptionGenerated(resultText);
-                        return;
-                    }
-                }
+    if (obj.contains("output"))
+    {
+        QJsonArray choices = obj["output"].toObject()["choices"].toArray();
+        if (!choices.isEmpty())
+        {
+            QJsonObject msg = choices[0].toObject()["message"].toObject();
+            QJsonArray content = msg["content"].toArray();
+
+            QString result;
+            for (auto v : content)
+            {
+                QJsonObject c = v.toObject();
+                if (c.contains("text"))
+                    result += c["text"].toString();
             }
-        }
-        
-        emit errorOccurred("解析 OpenAI 响应失败: 无效的响应格式");
-    } else {
-        // 解析阿里云响应（原有逻辑）
-        // 检查是否有 API 错误
-        if (jsonObj.contains("code") && jsonObj.contains("message")) {
-            emit errorOccurred("API 错误: " + jsonObj["message"].toString());
+
+            emit descriptionGenerated(result);
             return;
-        }
-
-        if (jsonObj.contains("output")) {
-            QJsonObject output = jsonObj["output"].toObject();
-            if (output.contains("choices")) {
-                QJsonArray choices = output["choices"].toArray();
-                if (!choices.isEmpty()) {
-                    QJsonObject firstChoice = choices[0].toObject();
-                    if (firstChoice.contains("message")) {
-                        QJsonObject msg = firstChoice["message"].toObject();
-                        if (msg.contains("content")) {
-                            QJsonArray content = msg["content"].toArray();
-                            // Qwen-VL 返回的 content 可能是数组，包含 text
-                            QString resultText;
-                            for (const auto &item : content) {
-                                if (item.toObject().contains("text")) {
-                                    resultText += item.toObject()["text"].toString();
-                                }
-                            }
-                            emit descriptionGenerated(resultText);
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 如果解析失败
-        if (jsonObj.contains("message")) {
-            emit errorOccurred("API 错误: " + jsonObj["message"].toString());
-        } else {
-            emit errorOccurred("解析响应失败");
         }
     }
+
+    emit errorOccurred("阿里云响应解析失败");
 }
 
+// =======================================
+//        Base64（无换行）
+// =======================================
 QString AiManager::imageToBase64(const QImage &image)
 {
-    QByteArray byteArray;
-    QBuffer buffer(&byteArray);
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
-    return QString::fromLatin1(byteArray.toBase64().data());
+
+    // 防止 Base64 自动换行（必须 KeepTrailingEquals）
+    return QString::fromLatin1(bytes.toBase64(QByteArray::Base64Encoding | QByteArray::KeepTrailingEquals));
 }

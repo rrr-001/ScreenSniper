@@ -5,10 +5,6 @@
 #include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QJsonArray>
-#include <QBuffer>
 
 class AiManager : public QObject
 {
@@ -16,21 +12,19 @@ class AiManager : public QObject
 public:
     explicit AiManager(QObject *parent = nullptr);
 
-    // 传入截图，发起请求
-    void generateImageDescription(const QImage &image);
+    Q_INVOKABLE void generateImageDescription(const QImage &image);
 
 signals:
-    // 请求成功，返回描述文本
-    void descriptionGenerated(QString text);
-    // 请求失败，返回错误信息
-    void errorOccurred(QString errorMsg);
-
-private slots:
-    void onNetworkReply(QNetworkReply *reply);
+    void descriptionGenerated(const QString &text);
+    void errorOccurred(const QString &error);
 
 private:
     QNetworkAccessManager *m_networkManager;
+
     QString imageToBase64(const QImage &image);
+
+    void onOpenAIReply(QNetworkReply *reply);
+    void onAliyunReply(QNetworkReply *reply);
 };
 
 #endif // AIMANAGER_H
