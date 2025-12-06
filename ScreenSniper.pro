@@ -98,6 +98,7 @@ SOURCES += \
     pinwidget.cpp \
     screenshotwidget.cpp \
     ocrmanager.cpp \
+    ocrresultdialog.cpp \
     watermark_robust.cpp \
     i18nmanager.cpp
 
@@ -108,6 +109,7 @@ HEADERS += \
     pinwidget.h \
     screenshotwidget.h \
     ocrmanager.h \
+    ocrresultdialog.h \
     watermark_robust.h \
     i18nmanager.h
 

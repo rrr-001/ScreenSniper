@@ -1,5 +1,6 @@
 #include "screenshotwidget.h"
 #include "pinwidget.h"
+#include "ocrresultdialog.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QMouseEvent>
@@ -87,21 +88,19 @@ ScreenshotWidget::ScreenshotWidget(QWidget *parent)
     m_aiManager = new AiManager(this);
 
     // 连接 AI 处理成功的信号
-    connect(m_aiManager, &AiManager::descriptionGenerated, this, [this](QString text){
-        // 1. 将生成的文字复制到剪贴板
-        QClipboard *clipboard = QGuiApplication::clipboard();
-        clipboard->setText(text);
+    connect(m_aiManager, &AiManager::descriptionGenerated, this, [this](QString text)
+            {
+                // 1. 将生成的文字复制到剪贴板
+                QClipboard *clipboard = QGuiApplication::clipboard();
+                clipboard->setText(text);
 
-        // 2. 弹窗提示用户
-        QMessageBox::information(this, getText("ai_description_complete_title", "AI 识别完成"),
-                                 getText("ai_description_copied", "描述内容已复制到剪贴板：\n\n") + text);
-
-    });
+                // 2. 弹窗提示用户
+                QMessageBox::information(this, getText("ai_description_complete_title", "AI 识别完成"),
+                                         getText("ai_description_copied", "描述内容已复制到剪贴板：\n\n") + text); });
 
     // 连接 AI 处理失败的信号
-    connect(m_aiManager, &AiManager::errorOccurred, this, [this](QString errorMsg){
-        QMessageBox::warning(this, getText("ai_description_failed_title", "AI 识别失败"), errorMsg);
-    });
+    connect(m_aiManager, &AiManager::errorOccurred, this, [this](QString errorMsg)
+            { QMessageBox::warning(this, getText("ai_description_failed_title", "AI 识别失败"), errorMsg); });
 
     setupToolbar();
     setTextToolbar();
@@ -309,7 +308,7 @@ void ScreenshotWidget::setupToolbar()
 #ifndef NO_OPENCV
     layout->addWidget(btnWatermark); // 水印按钮
 #endif
-    layout->addWidget(btnOCR); // OCR 按钮
+    layout->addWidget(btnOCR);           // OCR 按钮
     layout->addWidget(btnAIDescription); // AI图片描述按钮
 
     layout->addSpacing(10);
@@ -404,8 +403,6 @@ void ScreenshotWidget::setupToolbar()
 
     connect(btnStrengthUp, &QPushButton::clicked, this, &ScreenshotWidget::increaseEffectStrength);
     connect(btnStrengthDown, &QPushButton::clicked, this, &ScreenshotWidget::decreaseEffectStrength);
-
-
 
     if (toolbar)
         toolbar->adjustSize();
@@ -3456,15 +3453,10 @@ void ScreenshotWidget::performOCR()
         QClipboard *clipboard = QGuiApplication::clipboard();
         clipboard->setText(text);
 
-        QString msg = getText("ocr_result_copied", "识别到的文字已复制到剪贴板：\n\n") + text;
-
-        // macOS 原生 API 的提示
-        if (backend == "Native")
-        {
-            msg += "\n\n------------------------------------------------\n" + getText("ocr_macos_tip", "提示：当前正在使用 macOS 原生 OCR API。\n如果需要更高级的 OCR 功能（如更多语言支持），\n请安装 Tesseract 库并在项目中进行配置。");
-        }
-
-        QMessageBox::information(this, getText("ocr_complete_title", "OCR 完成"), msg);
+        // 使用自定义对话框显示 OCR 结果
+        OcrResultDialog *dialog = new OcrResultDialog(text, backend, this);
+        dialog->exec();
+        delete dialog;
     }
     else
     {
@@ -3473,13 +3465,13 @@ void ScreenshotWidget::performOCR()
     }
 }
 
-//图片生成文字描述
+// 图片生成文字描述
 void ScreenshotWidget::onAiDescriptionBtnClicked()
 {
     if (selectedRect.isNull() || !selected)
     {
         QMessageBox::warning(this, getText("ai_description_warning_title", "提示"),
-                            getText("ai_description_no_selection", "请先选择截图区域"));
+                             getText("ai_description_no_selection", "请先选择截图区域"));
         return;
     }
 
