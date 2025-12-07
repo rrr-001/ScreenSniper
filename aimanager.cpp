@@ -38,22 +38,23 @@ void AiManager::generateImageDescription(const QImage &image)
         request.setRawHeader("Authorization", ("Bearer " + apiKey).toUtf8());
 
         // image_url 对象
-        QJsonObject imgUrlObj;
-        imgUrlObj["url"] = "data:image/png;base64," + base64Image;
+        // QJsonObject imgUrlObj;
+        // imgUrlObj["url"] = "data:image/png;base64," + base64Image;
 
         // content 数组
         QJsonArray contentArray;
 
         // text
         QJsonObject textObj;
-        textObj["type"] = "text";
-        textObj["text"] = "请详细描述这张图片的内容，如有文字请提取。";
+        textObj["type"] = "input_text";
+        textObj["text"] = "请描述这张图片的内容";
         contentArray.append(textObj);
 
         // image
         QJsonObject imgObj;
         imgObj["type"] = "input_image";
-        imgObj["image_url"] = imgUrlObj;
+        imgObj["image_url"] = "data:image/png;base64," + base64Image;
+        // 注意新版是直接传URL！！
         contentArray.append(imgObj);
 
         // user message
@@ -61,22 +62,50 @@ void AiManager::generateImageDescription(const QImage &image)
         messageObj["role"] = "user";
         messageObj["content"] = contentArray;
 
-        QJsonArray inputArray;
-        inputArray.append(messageObj);
+        QJsonArray messagesArray;
+        messagesArray.append(messageObj);
 
         // final body
         QJsonObject jsonBody;
-        jsonBody["model"] = AIConfigManager::instance().getModelName(); // gpt-4o
-        jsonBody["input"] = inputArray;
-        jsonBody["max_tokens"] = 1000000; // 注意tokens设置过小可能导致限流 429
+        jsonBody["model"] = AIConfigManager::instance().getModelName();
+        jsonBody["input"] = messagesArray; // 注意这里是 input !
+        // jsonBody["max_tokens"] = 800; // 官方文档里面没有最大tokens数的字段
 
-        // debug（你可以打开看看请求是否正确）
-        qDebug() << "=== OpenAI Request ===";
-        qDebug().noquote() << QJsonDocument(jsonBody).toJson(QJsonDocument::Indented);
+        // 创建一个用于显示的简化版本（截断 base64）
+        QString base64Preview = base64Image.left(100) + "...[省略]..." + base64Image.right(50);
 
-        QNetworkReply *reply = m_networkManager->post(
-            request,
-            QJsonDocument(jsonBody).toJson());
+        QJsonObject imgObjPreview;
+        imgObjPreview["type"] = "input_image";
+        imgObjPreview["image_url"] = "data:image/png;base64," + base64Preview;
+
+        QJsonArray contentArrayPreview;
+        contentArrayPreview.append(textObj);
+        contentArrayPreview.append(imgObjPreview);
+
+        QJsonObject messageObjPreview;
+        messageObjPreview["role"] = "user";
+        messageObjPreview["content"] = contentArrayPreview;
+
+        QJsonArray messagesArrayPreview;
+        messagesArrayPreview.append(messageObjPreview);
+
+        QJsonObject jsonBodyPreview;
+        jsonBodyPreview["model"] = AIConfigManager::instance().getModelName();
+        jsonBodyPreview["input"] = messagesArrayPreview;
+
+        QByteArray requestData = QJsonDocument(jsonBody).toJson(QJsonDocument::Indented);
+
+        qDebug() << "========================================";
+        qDebug() << "=== OpenAI 请求信息 ===";
+        qDebug() << "端点:" << endpoint;
+        qDebug() << "模型:" << AIConfigManager::instance().getModelName();
+        qDebug() << "Base64 图片长度:" << base64Image.length() << "字符";
+        qDebug() << "请求体总大小:" << requestData.size() << "字节";
+        qDebug() << "\n--- JSON 结构预览 (base64已截断) ---";
+        qDebug().noquote() << QJsonDocument(jsonBodyPreview).toJson(QJsonDocument::Indented);
+        qDebug() << "========================================";
+
+        QNetworkReply *reply = m_networkManager->post(request, requestData);
         connect(reply, &QNetworkReply::finished, this, [this, reply]()
                 { onOpenAIReply(reply); });
 
@@ -95,7 +124,7 @@ void AiManager::generateImageDescription(const QImage &image)
     QString base64WithPrefix = "data:image/png;base64," + base64Image;
 
     QJsonObject textObj;
-    textObj["text"] = "请详细描述这张图片中的内容，如果是文字请提取出来。";
+    textObj["text"] = "请详细描述这张图片中的内容";
 
     QJsonObject imgObj;
     imgObj["image"] = base64WithPrefix;
@@ -130,35 +159,39 @@ void AiManager::onOpenAIReply(QNetworkReply *reply)
 {
     reply->deleteLater();
 
-    if (reply->error() != QNetworkReply::NoError)
-    {
-        // 获取 HTTP 状态码
-        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    // 获取 HTTP 状态码
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
-        // 特殊处理 429 错误：账号被限流了
-        if (statusCode == 429)
-        {
-            emit errorOccurred("请求过于频繁，请稍后再试。OpenAI API 有速率限制，建议等待几秒后重试。");
-            return;
-        }
-
-        // 其他错误
-        QString errorMsg = "网络错误";
-        if (statusCode > 0)
-        {
-            errorMsg += QString(" (HTTP %1)").arg(statusCode);
-        }
-        errorMsg += ": " + reply->errorString();
-
-        emit errorOccurred(errorMsg);
-        return;
-    }
+    qDebug() << "========================================";
+    qDebug() << "=== OpenAI 响应信息 ===";
+    qDebug() << "HTTP 状态码:" << statusCode;
+    qDebug() << "错误码:" << reply->error();
 
     QByteArray data = reply->readAll();
+    qDebug() << "响应体大小:" << data.size() << "字节";
+
     QJsonDocument doc = QJsonDocument::fromJson(data);
 
-    qDebug() << "=== OpenAI Response ===";
+    qDebug() << "--- 完整响应 JSON ---";
     qDebug().noquote() << doc.toJson(QJsonDocument::Indented);
+    qDebug() << "========================================";
+
+    // 直接提取并 emit message
+    if (doc.isObject())
+    {
+        QJsonObject obj = doc.object();
+
+        // 检查是否有 error.message
+        if (obj.contains("error"))
+        {
+            QString errorMessage = obj["error"].toObject()["message"].toString();
+            if (!errorMessage.isEmpty())
+            {
+                emit errorOccurred(errorMessage);
+                return;
+            }
+        }
+    }
 
     if (!doc.isObject())
     {
@@ -186,34 +219,28 @@ void AiManager::onOpenAIReply(QNetworkReply *reply)
         return;
     }
 
-    // 正确格式：output → content → text
-    if (obj.contains("output"))
+    // OpenAI Chat API 格式：choices → message → content
+    if (obj.contains("choices"))
     {
-        QJsonArray output = obj["output"].toArray();
+        QJsonArray choices = obj["choices"].toArray();
 
-        if (!output.isEmpty())
+        if (!choices.isEmpty())
         {
-            QJsonObject first = output[0].toObject();
+            QJsonObject firstChoice = choices[0].toObject();
 
-            if (first.contains("content"))
+            if (firstChoice.contains("message"))
             {
-                QJsonArray contentArr = first["content"].toArray();
+                QJsonObject message = firstChoice["message"].toObject();
 
-                QString result;
-
-                for (auto v : contentArr)
+                if (message.contains("content"))
                 {
-                    QJsonObject c = v.toObject();
-                    if (c["type"].toString() == "text")
+                    QString result = message["content"].toString();
+
+                    if (!result.isEmpty())
                     {
-                        result += c["text"].toString();
+                        emit descriptionGenerated(result);
+                        return;
                     }
-                }
-
-                if (!result.isEmpty())
-                {
-                    emit descriptionGenerated(result);
-                    return;
                 }
             }
         }
