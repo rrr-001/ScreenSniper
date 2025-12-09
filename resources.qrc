@@ -1,6 +1,26 @@
 <RCC>
     <qresource prefix="/icons">
-        <!-- 这里可以添加图标资源，暂时使用占位符 -->
-        <!-- <file>app_icon.png</file> -->
+        <file>icons/shapes.svg</file>
+        <file>icons/text.svg</file>
+        <file>icons/pen.svg</file>
+        <file>icons/mosaic.svg</file>
+        <file>icons/blur.svg</file>
+        <file>icons/watermark.svg</file>
+        <file>icons/ocr.svg</file>
+        <file>icons/aidesc.svg</file>
+        <file>icons/save.svg</file>
+        <file>icons/copy.svg</file>
+        <file>icons/pin.svg</file>
+        <file>icons/cancel.svg</file>
+        <file>icons/break.svg</file>
+        <file>icons/rectangle.svg</file>
+        <file>icons/ellipse.svg</file>
+        <file>icons/arrow.svg</file>
+        <file>icons/color_picker.svg</file>
+    </qresource>
+    <qresource prefix="/locales">
+        <file>locales/zh.json</file>
+        <file>locales/en.json</file>
+        <file>locales/zhHK.json</file>
     </qresource>
 </RCC>

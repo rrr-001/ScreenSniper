@@ -6,10 +6,11 @@
 #include <QClipboard>
 #include <QFileDialog>
 #include <QDateTime>
-#include<QMouseEvent>
+#include <QMetaObject>
+#include <QMetaMethod>
 
 PinWidget::PinWidget(const QPixmap &pixmap, QWidget *parent)
-    : QWidget(parent), m_sourcePixmap(pixmap), m_scale(1.0)
+    : QWidget(parent), m_sourcePixmap(pixmap), m_scale(1.0), mainWindow(nullptr)
 {
     // 【核心设置】
     // FramelessWindowHint: 去掉标题栏和边框
@@ -24,6 +25,44 @@ PinWidget::PinWidget(const QPixmap &pixmap, QWidget *parent)
     resize(m_sourcePixmap.size());
 }
 
+QString PinWidget::getText(const QString &key, const QString &defaultText) const
+{
+    if (mainWindow)
+    {
+        const QMetaObject *metaObj = mainWindow->metaObject();
+        int methodIndex = metaObj->indexOfMethod("getText(QString,QString)");
+        if (methodIndex != -1)
+        {
+            QString result;
+            QMetaMethod method = metaObj->method(methodIndex);
+            method.invoke(mainWindow, Qt::DirectConnection,
+                          Q_RETURN_ARG(QString, result),
+                          Q_ARG(QString, key),
+                          Q_ARG(QString, defaultText));
+            return result;
+        }
+    }
+    return defaultText;
+}
+
+void PinWidget::setMainWindow(QWidget *mainWin)
+{
+    mainWindow = mainWin;
+
+    if (mainWindow)
+    {
+        // 连接语言变化信号
+        connect(mainWindow, SIGNAL(languageChanged(QString)),
+                this, SLOT(onLanguageChanged()));
+    }
+}
+
+void PinWidget::onLanguageChanged()
+{
+    // 语言变化时，PinWidget 的右键菜单是动态创建的，不需要额外处理
+    // 如果将来有需要持久化的UI元素，可以在这里更新
+    update();
+}
 void PinWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
@@ -43,19 +82,29 @@ void PinWidget::paintEvent(QPaintEvent *event)
 
 void PinWidget::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton) {
+    if (event->button() == Qt::LeftButton)
+    {
         // 记录鼠标按下时，光标相对于窗口左上角的距离
         // 注意：Qt6 使用 globalPosition()，Qt5 使用 globalPos()
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        m_dragPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
+#else
         m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+#endif
         event->accept();
     }
 }
 
 void PinWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (event->buttons() & Qt::LeftButton) {
+    if (event->buttons() & Qt::LeftButton)
+    {
         // 移动窗口：当前鼠标绝对位置 - 之前记录的相对距离
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        move(event->globalPosition().toPoint() - m_dragPosition);
+#else
         move(event->globalPos() - m_dragPosition);
+#endif
         event->accept();
     }
 }
@@ -66,14 +115,18 @@ void PinWidget::wheelEvent(QWheelEvent *event)
     int numDegrees = event->angleDelta().y();
 
     // 计算缩放因子：向上滚放大，向下滚缩小
-    if (numDegrees > 0) {
+    if (numDegrees > 0)
+    {
         m_scale *= 1.1; // 放大10%
-    } else {
+    }
+    else
+    {
         m_scale /= 1.1; // 缩小
     }
 
     // 限制最小尺寸，防止缩没见了
-    if (m_scale < 0.1) m_scale = 0.1;
+    if (m_scale < 0.1)
+        m_scale = 0.1;
 
     // 计算新的尺寸
     QSize newSize = m_scale * m_sourcePixmap.size();
@@ -89,27 +142,31 @@ void PinWidget::contextMenuEvent(QContextMenuEvent *event)
     QMenu menu(this);
 
     // 添加菜单项
-    QAction *copyAction = menu.addAction("复制到剪切板");
-    QAction *saveAction = menu.addAction("另存为...");
+    QAction *copyAction = menu.addAction(getText("pin_copy", "复制到剪切板"));
+    QAction *saveAction = menu.addAction(getText("pin_save", "另存为..."));
     menu.addSeparator(); // 分隔线
-    QAction *closeAction = menu.addAction("关闭贴图");
+    QAction *closeAction = menu.addAction(getText("pin_close", "关闭贴图"));
 
     // 显示菜单并等待用户点击
     QAction *selectedItem = menu.exec(event->globalPos());
 
-    if (selectedItem == closeAction) {
+    if (selectedItem == closeAction)
+    {
         close(); // 关闭窗口
     }
-    else if (selectedItem == copyAction) {
+    else if (selectedItem == copyAction)
+    {
         // 复制到剪切板
         QApplication::clipboard()->setPixmap(m_sourcePixmap);
     }
-    else if (selectedItem == saveAction) {
+    else if (selectedItem == saveAction)
+    {
         // 打开保存对话框
-        QString fileName = QFileDialog::getSaveFileName(this, "保存图片",
+        QString fileName = QFileDialog::getSaveFileName(this, getText("save_image", "保存图片"),
                                                         "screenshot_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + ".png",
                                                         "Images (*.png *.jpg)");
-        if (!fileName.isEmpty()) {
+        if (!fileName.isEmpty())
+        {
             m_sourcePixmap.save(fileName);
         }
     }

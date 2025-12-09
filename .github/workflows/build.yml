@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        host: 'mac'
+        arch: 'x64'
+        
+    - name: Install Dependencies
+      run: |
+        # Use Rosetta to install x86_64 versions of dependencies
+        arch -x86_64 /usr/local/bin/brew update
+        arch -x86_64 /usr/local/bin/brew install opencv tesseract
+        
+    - name: Configure Project (local_config.pri)
+      run: |
+        # Generate a local config for CI environment
+        # Note: GitHub Actions macos-latest (Intel) uses /usr/local, macos-14 (ARM) uses /opt/homebrew
+        # We add both to be safe, but we must ensure we link against the correct architecture.
+        # The error "ignoring file ... found architecture 'arm64', required architecture 'x86_64'" 
+        # suggests we are building for x86_64 but linking against arm64 libs, or vice versa.
+        # Qt 5.15.2 on macos-latest is likely x86_64.
+        
+        echo "macx: {" > local_config.pri
+        echo "    DEFINES += USE_TESSERACT" >> local_config.pri
+        echo "    INCLUDEPATH += /usr/local/include /opt/homebrew/include" >> local_config.pri
+        
+        # Explicitly look for libs in both locations
+        echo "    LIBS += -L/usr/local/lib -L/opt/homebrew/lib -ltesseract -lleptonica" >> local_config.pri
+        echo "    INCLUDEPATH += /usr/local/opt/opencv/include/opencv4 /opt/homebrew/opt/opencv/include/opencv4" >> local_config.pri
+        echo "    LIBS += -L/usr/local/opt/opencv/lib -L/opt/homebrew/opt/opencv/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_videoio" >> local_config.pri
+        echo "}" >> local_config.pri
+        
+    - name: Build
+      run: |
+        qmake ScreenSniper.pro
+        make
