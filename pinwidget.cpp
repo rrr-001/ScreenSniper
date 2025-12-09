@@ -63,7 +63,6 @@ void PinWidget::onLanguageChanged()
     // 如果将来有需要持久化的UI元素，可以在这里更新
     update();
 }
-
 void PinWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);

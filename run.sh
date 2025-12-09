@@ -15,7 +15,6 @@ if [ ! -f "locales/zh.json" ] || [ ! -f "locales/en.json" ]; then
     fi
     echo ""
 fi
-
 # 检查是否已编译
 if [ ! -f "build/ScreenSniper.app/Contents/MacOS/ScreenSniper" ]; then
     echo "❌ 未找到可执行文件，请先运行 ./build.sh 编译项目"
